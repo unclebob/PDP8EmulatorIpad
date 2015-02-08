@@ -1,28 +1,77 @@
+--# FileAccess
+
+
+DropboxReader = class()
+
+function DropboxReader:read(name) 
+   return readText("Dropbox:"..name)
+end
+
+function DropboxReader:write(name, data)
+   return false
+end
+
+NullIO = class()
+
+function NullIO:read(name)
+   return ""
+end
+
+function NullIO:write(name, data)
+   return false
+end
+
+ProjectIO = class()
+function ProjectIO:init(prefix)
+   self.prefix = prefix
+end
+
+function ProjectIO:read(name)
+   return readProjectData(self.prefix..name)
+end
+
+function ProjectIO:write(name, data)
+   saveProjectData(self.prefix..name, data)
+   return true;
+end
+
 --# Main
 -- PDP8
 backingMode(RETAINED)
 
 function setup()
+   supportedOrientations(LANDSCAPE_ANY)
    showKeyboard()
+   displayMode(OVERLAY)
    tics = 0
    ttyDirty = true
    initAscii()
-   controlPanel = ControlPanel(180,80)
-   tty = Teletype(180, 90+controlPanel.height, controlPanel.width, HEIGHT-(90+controlPanel.height)-10)
-   punch = Punch(10, HEIGHT-210)
-   tapeReader = TapeReader(10, 350)
+   rightFrame = WIDTH-557
+   midFrame = rightFrame-110
+   leftFrame = 0
+   controlPanel = ControlPanel(rightFrame,80)
+   tty = Teletype(rightFrame, 90+controlPanel.height, controlPanel.width, HEIGHT-(90+controlPanel.height)-10)
+   punch = Punch(midFrame, HEIGHT-210)
+   tapeReader = TapeReader(midFrame, 350)
+   rimPanel = RimPanel(midFrame,90)    
+
+   rack = Rack(0,100,midFrame-leftFrame)
+   rackControls = RackControls(0,40,Shelf.width*2)
+   rackNumber = 1
+   racks = {}
+   racks[1] = rack
+   loadRack()
+
+   loadCore = MomentaryButton(rightFrame, 10, "Load Core", load)
+   saveCore = MomentaryButton(loadCore.x+loadCore.width+10, 10, "Save Core", save)
+   test = MomentaryButton(saveCore.x + saveCore.width + 20, 10, "Test", ControlPanel.test)
+   delete = MomentaryButton(test.x + test.width + 50, 10, "Delete", deleteData)
 
    instructionsPerSecond = 0
    framesPerSecond = 0
    lastFrameCount = 0
-   lastTimePeriod = 0
-   loadCore = MomentaryButton(140, 10, "Load Core", load)
-   saveCore = MomentaryButton(70, 10, "Save Core", save)
-   test = MomentaryButton(210, 10, "Test", ControlPanel.test)
-   delete = MomentaryButton(250, 10, "Delete", deleteData)
+   lastTimePeriod = 0    
 
-   rimPanel = RimPanel(10,90)
-   parameter.text("name")
    parameter.integer("cyclesPerFrame", 1, 200, 101)
    parameter.watch("instructionsPerSecond")
    parameter.watch("framesPerSecond")
@@ -66,6 +115,8 @@ function draw()
    rimPanel:draw()
 
    delete:draw()
+   rack:draw()
+   rackControls:draw()
 end
 
 function touched(t)
@@ -76,6 +127,14 @@ function touched(t)
    saveCore:touched(t)
    test:touched(t)
    delete:touched(t)
+
+   Shelf.wasTouched = false
+   rack:touched(t)
+   if Shelf.wasTouched == false and selectedShelf ~= nil and t.state==BEGAN then
+       selectedShelf:unselect()
+       selectedShelf = nil
+   end
+   rackControls:touched(t)
 end
 
 function setupText()
@@ -86,6 +145,14 @@ function setupText()
 end
 
 function keyboard(key)
+   if selectedShelf == nil then
+       sendToTTY(key)
+   else
+       selectedShelf:key(key)
+   end
+end
+
+function sendToTTY(key)
    local code = 0
    if (key == "«") then
        code = Processor.octal(377)
@@ -132,56 +199,32 @@ function checkPunch()
 end
 
 function save()
-   if name == "" then
-       print("No name specified.")
-       return
-   end
+   local name = "Core."..os.clock()
+   local shelf = findEmptyShelf()
+   shelf.type = Shelf.CORE
+   shelf.io = ProjectIO("cr_")
+   shelf.name = name
 
-   if (readProjectData("cr_"..name) ~= nil) then
-       if (lastSaveName~=name or os.clock()-lastSaveTime > 5) then
-           print("Core "..name.." already exists.  Press save again to confirm.")
-           lastSaveTime = os.clock()
-           lastSaveName = name
-           return
-       end
-   end
    data = ""
    for addr=0,4095,1 do
        data = data..controlPanel.processor.memory[addr]..':'
    end
-   saveProjectData("cr_"..name, data) 
-   hideKeyboard()
-   showKeyboard()
-   print(name.." saved.")
+   shelf.io:write(name, data) 
+   Rack.drawCount = 1
 end
 
 function load()
-   if name == "" then
-       local cores = {}
-       for k,v in pairs(listProjectData()) do
-           if (v:sub(1,3)=="cr_") then
-               table.insert(cores, v:sub(4,-1))
-           end
-       end
-       print(table.concat(cores,"\n"))
-   else
-       data = readProjectData("cr_"..name)
-       if (data == nil) then
-           print(name.." not found.")
-       else
-           local pos = 1
-           for addr=0,4095,1 do
-               local colon = string.find(data, ':', pos, true)
-               local token = string.sub(data, pos, colon-1)
-               controlPanel.processor.memory[addr]=0+token
-               pos = colon+1
-           end
-           print(name.." loaded.")
-           name=""
+   if selectedShelf ~= nil and selectedShelf.type == Shelf.CORE then
+       data = selectedShelf.io:read(selectedShelf.name)
+
+       local pos = 1
+       for addr=0,4095,1 do
+           local colon = string.find(data, ':', pos, true)
+           local token = string.sub(data, pos, colon-1)
+           controlPanel.processor.memory[addr]=0+token
+           pos = colon+1
        end
    end
-   hideKeyboard()
-   showKeyboard()
 end
 
 function deleteData()
@@ -194,6 +237,68 @@ function deleteData()
            saveProjectData(name, nil)
            print(name.." deleted.")
        end
+   end
+end
+
+function loadRack() 
+   loadRackFromDropbox()  
+   loadRackFromProject()
+end
+
+function loadRackFromDropbox()
+   local tapes = assetList("Dropbox")
+   for i=1,#tapes do
+       local shelf = findEmptyShelf()
+       shelf.type = Shelf.TAPE
+       shelf.name = tapes[i]
+       shelf.io = DropboxReader()
+   end
+end
+
+function loadRackFromProject()
+   local files = listProjectData()
+   for i=1, #files do
+       local prefix = files[i]:sub(1,3)
+       local name = files[i]:sub(4,-1)
+       local shelf = findEmptyShelf()
+       if prefix=="pt_" then
+           shelf.type = Shelf.TAPE
+           shelf.io = ProjectIO(prefix)
+           shelf.name = name
+       elseif prefix=="cr_" then
+           shelf.type = Shelf.CORE
+           shelf.io = ProjectIO(prefix)
+           shelf.name = name          
+       end
+   end
+end
+
+function findEmptyShelf()
+   local shelf = rack:findEmptyShelf()
+   if shelf == nil then
+       rackNumber = #racks+1
+       racks[rackNumber] = Rack(0, 100, midFrame-leftFrame)
+       rack = racks[rackNumber]
+       Rack.drawCount = 1
+       shelf = rack:findEmptyShelf()
+   end
+   return shelf
+end
+
+function nextRack()
+   rackNumber = rackNumber+1
+   if racks[rackNumber] == nil then
+       racks[rackNumber] = Rack(0,100,midFrame-leftFrame)
+   end
+   rack = racks[rackNumber]
+   Rack.drawCount = 1
+end
+
+function prevRack()
+   if rackNumber > 1 then
+       rackNumber = rackNumber-1
+       rack = racks[rackNumber]
+       Rack.drawCount = 1
    end
 end
 
@@ -303,6 +408,7 @@ function RoundBit:drawBit()
    else
        fill(0,0,0,255)
    end
+   ellipseMode(CORNER)
    ellipse(self.x,self.y, Bit.width, Bit.height)    
 end
 
@@ -319,6 +425,7 @@ function Button:init(x,y,name, f)
    local bitLeft = (w - Bit.width)/2
    local bitBottom = h+5    
    self.bit = self:makeBit(self.x + bitLeft, self.y + bitBottom)   
+   self.width = math.max(Bit.width, w)
 end
 
 function Button:draw()
@@ -625,6 +732,7 @@ end
 
 --# PaperTape
 PaperTape = class()
+PaperTape.color = color(221, 207, 10, 255)
 
 function PaperTape:init(device)
    self.device = device
@@ -637,7 +745,7 @@ function PaperTape:init(device)
    self.sprocketHoleWidth = self.sprocketHoleSize+2*self.sprocketMargin
    self.tapeWidth = 8*(self.holeSize+self.holeGap)+self.sprocketHoleWidth+self.tapeMargin
    self.tapeLeft = self.device.left+self.device.width/2-self.tapeWidth/2
-   self.tapeColor = color(221,207,10,255)
+   self.tapeColor = PaperTape.color
 end
 
 function PaperTape:draw()  
@@ -752,40 +860,25 @@ end
 function Punch:touched(t)
    if (t.state == BEGAN and t.x > self.left and t.x < self.left+self.width and
    t.y > self.bottom and t.y < self.bottom+self.height) then
-       if name=="" or name==nil then
-           self:printAssetList()
-       else
-           if self.buffer == "" then
-               print("There is nothing to punch.")
-               return
-           end
-           local ptText = readProjectData("pt_"..name)
-           if (ptText ~= nil and (self.lastSaveName ~= name or os.clock()-self.lastSaveTime > 5)) then
-               print("Tape already exists. Press again to confirm.")
-               self.lastSaveName = name
-               self.lastSaveTime = os.clock()
-           else     
-               ptText = self:toPt(self.buffer)
-               saveProjectData("pt_"..name, ptText)
-               print("Tape: "..name.." saved.")      
-               self.buffer = ""
-               self.drawCount = self.drawCount + 1
-           end
-       end
-       hideKeyboard()
-       showKeyboard()
+       self:hit()
    end
 end
 
-function Punch:printAssetList()
-   local tapes = {}
-   local list = listProjectData()
-   for k,v in pairs(list) do
-       if (v:sub(1,3)=="pt_") then
-           table.insert(tapes,v:sub(4,-1))
-       end
+function Punch:hit()
+   if (self.buffer == nil or #self.buffer == 0) then
+       sound("Game Sounds One:Wrong")
+   else
+       local shelf = findEmptyShelf()
+       shelf.name = "Tape:"..os.clock()
+       shelf.type = Shelf.TAPE
+       shelf.io = ProjectIO("pt_")
+
+       local ptText = self:toPt(self.buffer)
+       shelf.io:write(shelf.name, ptText)
+       self.buffer = ""
+       self.drawCount = self.drawCount + 1
+       Rack.drawCount = 1
    end
-   print(table.concat(tapes, "\n"))
 end
 
 function Punch:toPt(buffer)
@@ -796,6 +889,84 @@ function Punch:toPt(buffer)
        tapeImage = tapeImage..textByte.."\n"
    end
    return tapeImage
+end
+
+--# Rack
+Rack = class()
+Rack.vGap = 1
+Rack.hGap = 1
+Rack.drawCount = 5
+function Rack:init(x,y,width)
+   self.x = x
+   self.y = y
+   self.shelves = {}
+   local vShelves = math.floor((HEIGHT-y)/(Shelf.height + Rack.vGap))
+   local hShelves = math.floor(width/(Shelf.width+Rack.hGap))
+   self.width = hShelves*(Shelf.width+Rack.hGap)
+   for i=1,vShelves do
+       for j=1,hShelves do
+           table.insert(self.shelves, 
+               Shelf(x+(j-1)*(Shelf.width+Rack.hGap),y+((i-1)*Shelf.height+Rack.vGap)))
+       end
+   end
+
+end
+
+function Rack:draw()
+   if (Rack.drawCount > 0) then
+       Rack.drawCount = Rack.drawCount - 1
+       for _,shelf in pairs(self.shelves) do
+           shelf:draw()
+       end
+   end
+end
+
+function Rack:touched(touch)
+   for _,shelf in pairs(self.shelves) do
+       shelf:touched(touch)
+   end
+end
+
+function Rack:findEmptyShelf() 
+   for shelfNo, shelf in pairs(self.shelves) do
+       if (shelf.type == Shelf.EMPTY) then
+           return shelf
+       end
+   end
+   return nil
+end
+
+--# RackControls
+RackControls = class()
+
+function RackControls:init(x, y, width)
+   self.x = x
+   self.y = y
+   self.width = width
+   self.prevButton = MomentaryButton(x+5, y, "Prev", prevRack)
+   self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack)    
+end
+
+function RackControls:draw()
+   self.prevButton:draw()
+   textMode(CORNER)
+   font("Courier")
+   fontSize(15)
+   local label = "Rack:"..rackNumber
+   local w,h = textSize(label)
+   fill(0)
+   stroke(0)
+   local textx = self.x+(self.width/2)-w/2
+   local texty = self.y+h/2+20-h/2
+   rect(textx,texty,w,h)
+   fill(255)
+   text(label, textx, texty)
+   self.nextButton:draw()
+end
+
+function RackControls:touched(touch)
+   self.prevButton:touched(touch)
+   self.nextButton:touched(touch)
 end
 
 --# Register
@@ -873,6 +1044,150 @@ function SwitchRegister:makeOctalDigit(x,y)
    return OctalSwitch(x,y)
 end
 
+--# Shelf
+Shelf = class()
+
+Shelf.width = 150
+Shelf.height= 30
+Shelf.CORE=1
+Shelf.TAPE=2
+Shelf.EMPTY=3
+Shelf.iconWidth=20
+Shelf.wasTouched = false
+
+function Shelf:init(x,y)
+   self.x = x
+   self.y = y
+   self.name=""
+   self.prevName = ""
+   self.nameChanged = false
+   self.type = Shelf.EMPTY
+   self.io = NullIO()
+end
+
+function Shelf:draw()
+   fill(0)
+   if (self == selectedShelf) then
+       stroke(255,0,0)
+   else
+       stroke(255)
+   end
+   strokeWidth(2)
+   rect(self.x,self.y,Shelf.width, Shelf.height)
+   fill(255)
+   font("Courier")
+   fontSize(12)
+   textMode(CENTER)
+   text(self.name, self.x + Shelf.width/2 + Shelf.iconWidth/2, self.y + Shelf.height/2)
+
+   if self.type == Shelf.CORE then
+       self:drawCoreIcon()
+   elseif self.type == Shelf.TAPE then
+       self:drawTapeIcon()
+   end
+end
+
+function Shelf:drawCoreIcon()
+   fill(128);
+   noStroke()
+   rect(self.x+1, self.y+1, Shelf.iconWidth-1, Shelf.height-2)
+   stroke(255, 255, 255, 255)
+   strokeWidth(4)
+   noFill()
+   ellipseMode(CENTER)
+   ellipse(self.x + Shelf.iconWidth/2, self.y + Shelf.height/2, Shelf.iconWidth-2)
+end
+
+function Shelf:drawTapeIcon()
+   local bits = math.pi
+   fill(PaperTape.color)
+   noStroke()
+   rect(self.x+1, self.y+1, Shelf.iconWidth-1, Shelf.height-2)    
+
+   fill(0)
+   noStroke()
+   ellipseMode(CORNER)
+
+   local holes = 5
+   local gap = 1
+   local margin = 2
+   local holeWidth = (Shelf.iconWidth-(2*margin)-((holes-1)*gap))/holes
+   local rowy = self.y+margin
+   while rowy < self.y + Shelf.height - margin do
+       for i=1,holes do
+           bits = bits*10
+           bit = math.floor(bits)
+           bits = bits-bit
+           if bit > 5 then
+               ellipse(self.x+margin+(i-1)*(holeWidth+gap), rowy, holeWidth)
+           end
+       end
+       rowy = rowy + holeWidth + gap
+   end
+
+end
+
+function Shelf:touched(touch)
+   if (touch.x > self.x and touch.x < self.x+Shelf.width and 
+       touch.y > self.y and touch.y < self.y+Shelf.height and 
+       touch.state == BEGAN) then
+       Shelf.wasTouched = true;
+       Rack.drawCount = 1
+       if selectedShelf ~= nil then
+           selectedShelf:unselect()
+       end
+       if (selectedShelf == self) then
+           selectedShelf = nil
+       else
+           selectedShelf = self
+           self:select()
+       end
+   end
+end
+
+function Shelf:key(key)
+   self.nameChanged = true
+   if key == BACKSPACE then
+       self.name = self.name:sub(1,-2)
+   elseif key == "¥" then -- OPT-Y
+       self.name = ""
+   else
+       self.name = self.name..key
+   end
+   Rack.drawCount = 1
+end
+
+function Shelf:select()
+   self.prevName = self.name
+end
+
+function Shelf:unselect()
+   Rack.drawCount = 1
+   if self.nameChanged then
+       if self.name=="" or self.name==nil then
+           if (self.io:write(self.prevName, nil) == false) then
+               self.name = self.prevName
+               sound("Game Sounds One:Wrong")
+           else
+               self.type = Shelf.EMPTY
+               self.io = NullIO()
+           end
+       else
+           if self.io:read(self.name) ~= nil then
+               self.name = self.prevName
+               sound("Game Sounds One:Wrong")
+           else
+               if (self.io:write(self.name, self.io:read(self.prevName)) == false) then
+                   self.name = self.prevName
+               else
+                   self.io:write(self.prevName, nil)
+               end
+           end
+       end
+   end
+   self.nameChanged = false;
+end
+
 --# TapeReader
 TapeReader = class()
 
@@ -928,41 +1243,23 @@ function TapeReader:read()
 end
 
 function TapeReader:touched(t)
-   if (t.state == BEGAN and t.x > self.left and t.x < self.left+self.width and
+   if (t.state == BEGAN and t.x > self.left and 
+   t.x < self.left+self.width and
    t.y > self.bottom and t.y < self.bottom+self.height) then
-       if name=="" or name==nil then
-           self.buffer = ""
-           self:printAssetList()
-       else
-           local ptText = readText("Dropbox:"..name)
-           if (ptText == nil) then
-               ptText = readProjectData("pt_"..name)
-               if (ptText == nil) then
-                   print("No such tape.")
-                   return
-               end
-           end
-           self.buffer = self:ptToBinary(ptText)
-       end
-       self.drawCount = self.drawCount + 1
-       hideKeyboard()
-       showKeyboard()       
+       self:hit()
    end
 end
 
-function TapeReader:printAssetList()
-   local tapes = {}
-   local list = assetList("Dropbox")
-   for k,v in pairs(list) do
-       table.insert(tapes, "G:"..v)
+function TapeReader:hit()
+   if selectedShelf == nil then
+       self.buffer = ""
+   else
+       local ptText = selectedShelf.io:read(selectedShelf.name)
+       self.buffer = self:ptToBinary(ptText)
    end
-   local list = listProjectData()
-   for k,v in pairs(list) do
-       if (v:sub(1,3) == "pt_") then
-           table.insert(tapes, "L:"..(v:sub(4,-1)))
-       end
-   end
-   print(table.concat(tapes,"\n"))
+   self.drawCount = self.drawCount + 1
+   hideKeyboard()
+   showKeyboard()
 end
 
 function TapeReader:ptToBinary(s)
