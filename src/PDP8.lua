@@ -1,3 +1,4 @@
+
 --# FileAccess
 
 
@@ -27,12 +28,20 @@ function ProjectIO:init(prefix)
 end
 
 function ProjectIO:read(name)
-   return readProjectData(self.prefix..name)
+   return readProjectData(self:rackPrefix()..self.prefix..name)
 end
 
 function ProjectIO:write(name, data)
-   saveProjectData(self.prefix..name, data)
+   saveProjectData(self:rackPrefix()..self.prefix..name, data)
    return true;
+end
+
+function ProjectIO:rackPrefix()
+   local rackPrefix = ""
+   if (rackNumber > 1) then
+       rackPrefix = string.format("rk%d_", rackNumber)
+   end
+   return rackPrefix
 end
 
 --# Main
@@ -42,9 +51,8 @@ backingMode(RETAINED)
 function setup()
    supportedOrientations(LANDSCAPE_ANY)
    showKeyboard()
-   displayMode(OVERLAY)
+   displayMode(FULLSCREEN)
    tics = 0
-   ttyDirty = true
    initAscii()
    rightFrame = WIDTH-557
    midFrame = rightFrame-110
@@ -62,19 +70,14 @@ function setup()
    racks[1] = rack
    loadRack()
 
-   loadCore = MomentaryButton(rightFrame, 10, "Load Core", load)
-   saveCore = MomentaryButton(loadCore.x+loadCore.width+10, 10, "Save Core", save)
-   test = MomentaryButton(saveCore.x + saveCore.width + 20, 10, "Test", ControlPanel.test)
-   delete = MomentaryButton(test.x + test.width + 50, 10, "Delete", deleteData)
+   test = MomentaryButton(midFrame, 10, "Test", testAll)
 
    instructionsPerSecond = 0
    framesPerSecond = 0
    lastFrameCount = 0
    lastTimePeriod = 0    
 
-   parameter.integer("cyclesPerFrame", 1, 200, 101)
-   parameter.watch("instructionsPerSecond")
-   parameter.watch("framesPerSecond")
+   statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)
    lastSaveName=""
    lastSaveTime=0
    lastTtyTime = 0
@@ -94,47 +97,37 @@ function draw()
        background(0,0,0,255)
    end
    controlPanel:draw()
-   if ttyDirty or tics < 10 then
-       tty:draw()
-       ttyDirty = false
-   end
-
-   if (os.clock()-lastTtyTime > 0.05) then
-       checkTTY()
-       lastTtyTime = os.clock()
-   end
+   tty:draw()
 
    checkPunch()
    checkReader()
    punch:draw()  
    tapeReader:draw()
 
-   loadCore:draw()
-   saveCore:draw()
    test:draw()
    rimPanel:draw()
 
-   delete:draw()
    rack:draw()
    rackControls:draw()
+   statsPanel:draw()
 end
 
 function touched(t)
    controlPanel:touched(t)
    tapeReader:touched(t)
    punch:touched(t)
-   loadCore:touched(t)
-   saveCore:touched(t)
+   tty:touched(t)
+
    test:touched(t)
-   delete:touched(t)
+   statsPanel:touched(t)
 
    Shelf.wasTouched = false
+   rackControls:touched(t)
    rack:touched(t)
    if Shelf.wasTouched == false and selectedShelf ~= nil and t.state==BEGAN then
        selectedShelf:unselect()
        selectedShelf = nil
    end
-   rackControls:touched(t)
 end
 
 function setupText()
@@ -185,7 +178,6 @@ function checkTTY()
        tty:type(dev.buffer)
        dev.ready = 1
        dev.operating = false
-       ttyDirty = true
    end
 end
 
@@ -227,19 +219,6 @@ function load()
    end
 end
 
-function deleteData()
-   if name=="" then
-       print(table.concat(listProjectData(), "\n"))
-   else
-       if (readProjectData(name) == nil) then
-           print(name.." does not exist.")
-       else
-           saveProjectData(name, nil)
-           print(name.." deleted.")
-       end
-   end
-end
-
 function loadRack() 
    loadRackFromDropbox()  
    loadRackFromProject()
@@ -258,18 +237,40 @@ end
 function loadRackFromProject()
    local files = listProjectData()
    for i=1, #files do
-       local prefix = files[i]:sub(1,3)
-       local name = files[i]:sub(4,-1)
-       local shelf = findEmptyShelf()
-       if prefix=="pt_" then
-           shelf.type = Shelf.TAPE
-           shelf.io = ProjectIO(prefix)
-           shelf.name = name
-       elseif prefix=="cr_" then
-           shelf.type = Shelf.CORE
-           shelf.io = ProjectIO(prefix)
-           shelf.name = name          
+       local rackNo, name = extractRackFromFileName(files[i])
+       if (rackNo ~= nil) then
+           rackNumber = rackNo
+           if racks[rackNo] == nil then
+               racks[rackNo] = Rack(0, 100, midFrame-leftFrame)
+           end
+           loadShelf(racks[rackNo]:findEmptyShelf(), name)
+       else
+           loadShelf(findEmptyShelf(), files[i])
        end
+   end
+   rackNumber = 1
+   rack = racks[1]
+end
+
+function extractRackFromFileName(fileName)
+   local rackNumber,name = string.match(fileName, "^rk(%d+)_(.+)$")
+   if rackNumber == nil then
+       return nil,nil
+   end
+   return rackNumber+0,name
+end
+
+function loadShelf(shelf, fileName)
+   local prefix = fileName:sub(1,3)
+   local name = fileName:sub(4,-1)
+   if prefix=="pt_" then
+       shelf.type = Shelf.TAPE
+       shelf.io = ProjectIO(prefix)
+       shelf.name = name
+   elseif prefix=="cr_" then
+       shelf.type = Shelf.CORE
+       shelf.io = ProjectIO(prefix)
+       shelf.name = name
    end
 end
 
@@ -300,6 +301,20 @@ function prevRack()
        rack = racks[rackNumber]
        Rack.drawCount = 1
    end
+end
+
+function testAll() 
+   local t = Test()
+   mainTest(t)
+   ControlPanel.test(t)
+end
+
+function mainTest(t)
+   t:assertEquals(nil, extractRackFromFileName("fileName"), "ExtractRack1")
+   t:assertEquals(1, extractRackFromFileName("rk01_name"), "ExtractRack2")
+   local rackNumber, name = extractRackFromFileName("rk99_cr_name")
+   t:assertEquals(99, rackNumber, "ExtractRack3")
+   t:assertEquals("cr_name", name, "ExtractRack4")
 end
 
 --# Bit
@@ -540,8 +555,17 @@ function ControlPanel:draw()
            if self.run.bit.value == 0 then
                break
            end
+           self:checkDevs()
        end
        cp.loadLightsFromProcessor()
+   end
+end
+
+function ControlPanel:checkDevs()
+   local now = os.clock()
+   if (now-lastTtyTime > 0.1) then
+       checkTTY()
+       lastTtyTime = now
    end
 end
 
@@ -600,8 +624,7 @@ function ControlPanel.loadLightsFromProcessor()
    cp.tpf.bit:setValue(cp.processor.device[4].ready)
 end
 
-function ControlPanel.test()
-   t = Test()
+function ControlPanel.test(t)
    local register = Register(0,0,"TEST")
    register:test(t)
    local processor = Processor(cp.mb, cp.run)
@@ -944,6 +967,8 @@ function RackControls:init(x, y, width)
    self.y = y
    self.width = width
    self.prevButton = MomentaryButton(x+5, y, "Prev", prevRack)
+   self.loadButton = MomentaryButton(x+(width/3)-self.prevButton.width, y, "Load", load)
+   self.saveButton = MomentaryButton(x+(2*width/3), y, "Save", save)
    self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack)    
 end
 
@@ -962,11 +987,15 @@ function RackControls:draw()
    fill(255)
    text(label, textx, texty)
    self.nextButton:draw()
+   self.loadButton:draw()
+   self.saveButton:draw()
 end
 
 function RackControls:touched(touch)
    self.prevButton:touched(touch)
    self.nextButton:touched(touch)
+   self.loadButton:touched(touch)
+   self.saveButton:touched(touch)
 end
 
 --# Register
@@ -1188,6 +1217,46 @@ function Shelf:unselect()
    self.nameChanged = false;
 end
 
+--# StatsPanel
+StatsPanel = class()
+StatsPanel.width=130
+
+function StatsPanel:init(x,y)
+   self.x = x
+   self.y = y
+   self.speed = MomentaryButton(x+10,y,"Speed", cycleSpeed)
+end
+
+function StatsPanel:draw()
+   local msg=string.format("%4d fps\n%4d ips\n%4d ipf",framesPerSecond ,instructionsPerSecond, cyclesPerFrame)
+   font("Courier")
+   fontSize(15)
+   local w,h=textSize(msg)
+   fill(0)
+   stroke(255)
+   local x = self.speed.width+20+self.x
+   rect(x,self.y,w+10, h+10)
+   fill(255)
+   text(msg, x+5, self.y+5)
+   self.speed:draw()
+end
+
+function StatsPanel:touched(touch)
+   self.speed:touched(touch)
+end
+
+speedSelections = {1,11,101,401}
+speedSelection = 4
+cyclesPerFrame=401
+
+function cycleSpeed()
+   speedSelection=speedSelection+1
+   if speedSelection>#speedSelections then
+       speedSelection = 1
+   end
+   cyclesPerFrame=speedSelections[speedSelection]
+end
+
 --# TapeReader
 TapeReader = class()
 
@@ -1258,8 +1327,6 @@ function TapeReader:hit()
        self.buffer = self:ptToBinary(ptText)
    end
    self.drawCount = self.drawCount + 1
-   hideKeyboard()
-   showKeyboard()
 end
 
 function TapeReader:ptToBinary(s)
@@ -1595,7 +1662,7 @@ end
 
 function Processor:handleInterruptInstruction(command)
    if (command == 1) then
-       self.ionPending = 20
+       self.ionPending = 30
    elseif (command == 2) then
        self.ion = false
    end
@@ -1726,16 +1793,27 @@ function Teletype:init(x,y,w,h)
    self.lineStartPos[1] = 0
    self.lastLineDrawn = 0
    self.margin = 10
-   self.drawCount = 0
+   self.drawCount = 5
    self.charMask = Processor.octal(177)
    self.LF = Processor.octal(12)
    self.CR = Processor.octal(15)
    self.BEL = Processor.octal(07)
+   self.scrollBottom = 1
+   self.scrollStart = 0
+   self.scrolling = false
 end
 
-function Teletype:draw(x,y)
-   local justDrawOneChar = (self.line == self.lastLineDrawn)
-   if (not justDrawOneChar) or self.drawCount < 5 then
+function Teletype:draw()
+   if self.drawCount > 0 then
+       self:drawPaper()
+   end
+   self.drawCount = math.max(0, self.drawCount-1)
+
+end
+
+function Teletype:drawPaper()
+   local justDrawOneChar = (self.line == self.lastLineDrawn) and (not self.scrolling)
+   if (not justDrawOneChar) or self.drawCount > 1 then
        fill(255, 227, 0, 255)
        rect(self.x, self.y, self.width, self.height)
    end
@@ -1744,15 +1822,21 @@ function Teletype:draw(x,y)
 
    self.screeny = 0
    self.screenx = 0
-   local oldestLineToDraw = math.max(self.line-30,1)
-   if (justDrawOneChar) then
-       oldestLineToDraw = self.line
+   if (self.scrolling) then
+       local oldestLineToDraw = math.max(self.scrollBottom-30, 1)
+       for lineToDraw = self.scrollBottom, oldestLineToDraw, -1 do
+           self:drawLine(lineToDraw, false)
+       end
+   else
+       local oldestLineToDraw = math.max(self.line-30,1)
+       if (justDrawOneChar) then
+           oldestLineToDraw = self.line
+       end
+       for lineToDraw = self.line, oldestLineToDraw, -1 do
+           self:drawLine(lineToDraw, justDrawOneChar)
+       end
+       self.lastLineDrawn = self.line
    end
-   for lineToDraw = self.line, oldestLineToDraw, -1 do
-       self:drawLine(lineToDraw, justDrawOneChar)
-   end    
-   self.lastLineDrawn = self.line
-   self.drawCount = self.drawCount + 1
 end
 
 function Teletype:setupFont()
@@ -1792,10 +1876,42 @@ function Teletype:drawChar(charIndex, justDrawOneChar)
    end
 end
 
-function Teletype:touched(touch)
+function Teletype:touched(touch) 
+   if touch.x > self.x and touch.x < (self.x + self.width) and
+   touch.y > self.y and touch.y < (self.y + self.height) then
+       self:hit(touch)
+   end
+end
+
+function Teletype:hit(touch)
+   if touch.state == BEGAN then
+       if self.scrolling == false then
+           self.scrollStart = self.line
+           self.scrolling = true;
+       else
+           self.scrollStart = self.scrollBottom
+       end
+       self.scrolly = touch.y
+
+   elseif touch.state == ENDED then
+       if self.scrollBottom==self.line then
+           self.scrolling = false
+       end
+   else -- MOVING
+       local delta = touch.y - self.scrolly
+       if delta ~= 0 then
+           self.drawCount = 1
+       end
+       self.scrollBottom = self.scrollStart + math.floor(delta/10)
+       self.scrollBottom = math.min(self.scrollBottom, self.line)
+       self.scrollBottom = math.max(self.scrollBottom, 1)
+   end
 end
 
 function Teletype:type(c)
+   if not self.scrolling then
+       self.drawCount = 1
+   end
    c = Processor.mask(self.charMask, c)    
    self.charCount = self.charCount + 1
    self.chars[self.charCount] = c
@@ -2170,4 +2286,3 @@ function RimPanel:getText()
    "7774  3376\n"..
    "7775  5356"
 end
-
