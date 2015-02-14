@@ -6,17 +6,40 @@ All the resources it uses are standard with Codea so you shouldn't have any diff
 running it as is.  
 
 ### Shelves and Racks
-
 To the left are the shelves of the current rack.  You can switch to other racks by pushing the "Next" and "Prev" buttons
-at the bottom.  The shelves can hold paper tapes and core images.  Tap on a paper tape to select it, and then tap the reader to load it.
-Tap a core image to select it, and tap Load Core to load it.
+at the bottom.  The shelves can hold paper tapes and core images.  
 
-If you tap "Save Core" it will put the current core image on a new shelf, and name it "Core_" followed by a time stamp.  You can tap the
-Shelf and type a new name if you like.  By the same token if there is a puched tape in the punch, and you tap it, it will put it on an empty
-shelf named "Tape_" followed by a time stamp.  Again, you can rename it if you like by taping on it, and editing the name.  
+The names of items on shelves can be changed by taping on the shelf and then editing the text of the name.  If you type Opt-Y the name will be erased, and you can type a new name.  
 
-Opt-Y should erase the name of the selected shelf.  You can type a new name if you like.  Or, if you unselect a shelf with no name,
-then the object on that shelf will be deleted.  So be careful.
+To delete the contents of a shelf, simply delete the name of that shelf, and then tap another shelf, or anywhere outside of the rack.  The contents of the unnamed shelf will be deleted.  So be careful.
+
+###Paper Tapes
+Tap on a shelf that holds a paper tape to select it, and then tap the reader to load it.  The selected paper tape will show up in the reader, ready to be read by the PDP8.  The image of the paper tape is faithful, in that the holes in the paper tape correspond to the contents of the tape, and the bits that the PDP8 is reading.
+
+To save a tape that has been punched tap it, it will be removed from the punch and placed in an empty
+shelf named `Tape_<time>`.  You can rename it if you like by taping on it, and editing the name.  
+
+###Dropbox
+The first rack automatically loads paper tapes that it finds in Codea's Dropbox repository.  Codea allows you to bind that repository to your own Dropbox account.  It will use the files that you place in Apps/Codea.  I've included some paper tape files in this git repo that you should move into that Dropbox directory.  With those tapes you'll be able to boostrap the PDP8 with the most relevant ancient software, and actually write real PDP8 assembler programs.
+
+### Core Images
+Below the racks, between the "Next" and "Prev" buttons you'll see the "Load" and "Save" buttons.  If you push "Save" then the current contents of Core will be saved on an empty shelf.  You'll see it appear there with the name: `Core_<Time>`.  You can change the name by clicking on the shelf, and editing the text.
+
+To load a core image into core, simply tap on the shelf to select it, and then press the "Load" button.  The core image will be immediately loaded into the PDP8 core memory.
+
+###Teleprinter
+The teleprinter has an endless roll of yellow paper.  Only the most recent 30 lines are shown, but you can scroll backwards to see previous contents by simply running your finger up and down over the paper -- similar to scrolling on a iPhone.
+
+###Processor Statistics and Speed.
+At the bottom right you'll see three numbers in a white rectangle.  This is the statistics frame.
+
+ * `fps` stands for "Frames per Second".  This is the number of times that the screen is redrawn every second.  The lights in the registers can change no faster than this.
+ * `ips` stands for instructions per second.  It is the raw speed of the processor.  
+ * `ipf` stands for instructions per frame.  This is the number of instructions that are executed between redraws of the screen.  
+ * `Speed Button` You can control the value of `ipf` by tapping on the `Speed` button to the left of the statistics frame.  Each tap causes the `ipf` to cycle through a few useful values which are [1,11,101,401].  The more instructions per frame, the higher the speed of the processor, but the fewer redraws per second.  The values 101,and 401 provide reasonable performance for Focal, the Editor, and the Assembler.
+
+
+
 
 More documentation is coming...
 
