@@ -46,12 +46,18 @@ end
 
 --# Main
 -- PDP8
+-- Test on other ipads.
+
 backingMode(RETAINED)
+
+function dummy()
+   readText("Dropbox:listing")
+end
 
 function setup()
    supportedOrientations(LANDSCAPE_ANY)
    showKeyboard()
-   displayMode(FULLSCREEN)
+   displayMode(FULLSCREEN_NO_BUTTONS)
    tics = 0
    initAscii()
    rightFrame = WIDTH-557
@@ -59,8 +65,18 @@ function setup()
    leftFrame = 0
    controlPanel = ControlPanel(rightFrame,80)
    tty = Teletype(rightFrame, 90+controlPanel.height, controlPanel.width, HEIGHT-(90+controlPanel.height)-10)
+
    punch = Punch(midFrame, HEIGHT-210)
+   punchSpeed = Button(midFrame-40, punch.bottom+130, "FAST", setPunchSpeed)
+   punchFast = 0
+   punchClear = MomentaryButton(midFrame-40, punch.bottom+65, "JUNK", clearPunch)
+   punchLeaderButton = MomentaryButton(midFrame-40, punch.bottom, "LEAD", punchLeader)
+
    tapeReader = TapeReader(midFrame, 350)
+   readerSpeed = Button(midFrame-40, tapeReader.bottom+130, "FAST", setReaderSpeed)
+   readerFast = 0
+   readerAutoButton = Button(midFrame-40, tapeReader.bottom+65, "AUTO", setReaderAuto)
+
    rimPanel = RimPanel(midFrame,90)    
 
    rack = Rack(0,100,midFrame-leftFrame)
@@ -71,6 +87,8 @@ function setup()
    loadRack()
 
    test = MomentaryButton(midFrame, 10, "Test", testAll)
+   ttySpeed = Button(midFrame+50, 10, "TTY FAST", setTtySpeed)
+   ttyFast = 0
 
    instructionsPerSecond = 0
    framesPerSecond = 0
@@ -78,9 +96,12 @@ function setup()
    lastTimePeriod = 0    
 
    statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)
-   lastSaveName=""
-   lastSaveTime=0
-   lastTtyTime = 0
+
+   quitButton = MomentaryButton(rightFrame+100, 10, "QuitX2", quitProgram)
+
+   saveListingButton = MomentaryButton(rightFrame+200, 10, "Save TTY", saveListing)
+   junkTtyButton =  MomentaryButton(rightFrame+300, 10, "Junk TTY", junkTty)
+   quitTime = 0
 end
 
 function draw()
@@ -99,8 +120,6 @@ function draw()
    controlPanel:draw()
    tty:draw()
 
-   checkPunch()
-   checkReader()
    punch:draw()  
    tapeReader:draw()
 
@@ -110,6 +129,15 @@ function draw()
    rack:draw()
    rackControls:draw()
    statsPanel:draw()
+   readerSpeed:draw()
+   readerAutoButton:draw()
+   punchSpeed:draw()
+   punchClear:draw()
+   punchLeaderButton:draw()
+   ttySpeed:draw()
+   quitButton:draw()
+   saveListingButton:draw()
+   junkTtyButton:draw()
 end
 
 function touched(t)
@@ -120,6 +148,15 @@ function touched(t)
 
    test:touched(t)
    statsPanel:touched(t)
+   punchSpeed:touched(t)
+   punchClear:touched(t)
+   punchLeaderButton:touched(t)
+   readerSpeed:touched(t)
+   readerAutoButton:touched(t)
+   ttySpeed:touched(t)
+   quitButton:touched(t)
+   saveListingButton:touched(t)
+   junkTtyButton:touched(t)
 
    Shelf.wasTouched = false
    rackControls:touched(t)
@@ -147,14 +184,16 @@ end
 
 function sendToTTY(key)
    local code = 0
-   if (key == "«") then
+   if (key == "«") then -- RUBOUT
        code = Processor.octal(377)
-   elseif (key == "¬") then
+   elseif (key == "¬") then -- CTRL-L FORM-FEED
        code = Processor.octal(214)
-   elseif (key == "©") then
+   elseif (key == "©") then -- CTRL-G BELL
        code = Processor.octal(207)
-   elseif (key:byte(1) == nil) then
-       code = Processor.octal(215)
+   elseif (key == "ç") then -- CTRL-C
+       code = Processor.octal(203)
+   elseif (key:byte(1) == nil) then -- CTRL-M CR
+       code = Processor.octal(215) 
    else
        key = string.upper(key)
        code =128+(key:byte(1))
@@ -165,10 +204,14 @@ function sendToTTY(key)
 end
 
 function checkReader()
-   reader = controlPanel.processor.device[1]
-   if (reader.ready == 0 and tapeReader.buffer:len() > 0) then
-       reader.ready = 1
-       reader.buffer = tapeReader:read()
+   local reader = controlPanel.processor.device[1]
+   if (tapeReader.buffer:len() > 0) then
+       if (readerAuto==1) then
+           sendToTTY(string.char(tapeReader:read()))
+       elseif (reader.ready == 0) then
+           reader.ready = 1
+           reader.buffer = tapeReader:read()
+       end
    end
 end
 
@@ -301,6 +344,69 @@ function prevRack()
        rack = racks[rackNumber]
        Rack.drawCount = 1
    end
+end
+
+function setReaderSpeed(speed)
+   readerFast = speed
+end
+
+function setReaderAuto(auto)
+   readerAuto = auto   
+end
+
+function setPunchSpeed(speed)
+   punchFast = speed
+end
+
+function clearPunch()
+   punch.buffer = ""
+   punch.drawCount = 1
+   sound("Game Sounds One:Land")
+end
+
+function punchLeader()
+   local leader = ""
+   for i=1,15 do
+       leader=leader..string.char(Processor.octal(200))
+   end
+   punch.buffer = punch.buffer..leader
+   punch.drawCount = 1
+end
+
+function setTtySpeed(speed)
+   ttyFast = speed
+end
+
+function quitProgram() 
+   now = os.clock()
+   if now-quitTime < 1 then
+       sound("Game Sounds One:Assembly 5")
+       while os.clock() - now < 0.5 do end
+       close()
+   end
+   quitTime = now
+end
+
+function saveListing() 
+   saveText("Dropbox:listing", makeTextFromTty())
+end
+
+function makeTextFromTty()
+   s = ""
+   for i,c in pairs(tty.chars) do
+       if c == Processor.octal(12) then
+           -- ignore
+       elseif c == Processor.octal(14) then
+           s = s.."\n\n----------------\n\n"
+       else
+           s = s..ASCII[c]
+       end
+   end
+   return s
+end
+
+function junkTty() 
+   tty:clear()
 end
 
 function testAll() 
@@ -520,6 +626,9 @@ function ControlPanel:init(x,y)
    instructionsPerSecond = 0
    self.instructions = 0
    self.drawCount = 4
+   lastTtyTime = 0
+   lastReadTime = 0
+   lastPunchTime = 0
 end
 
 function ControlPanel:draw()
@@ -562,10 +671,36 @@ function ControlPanel:draw()
 end
 
 function ControlPanel:checkDevs()
+   local ttyDelay = .1
+   local punchDelay = .1
+   local readerDelay = .1
+
+   if ttyFast == 1 then
+       ttyDelay = 0
+   end
+
+   if punchFast == 1 then
+       punchDelay = 0.02
+   end
+
+   if readerFast == 1 then
+       readerDelay = .01
+   end
+
    local now = os.clock()
-   if (now-lastTtyTime > 0.1) then
+   if (now-lastTtyTime >= ttyDelay) then
        checkTTY()
        lastTtyTime = now
+   end
+
+   if now-lastReadTime >= readerDelay then
+       checkReader()
+       lastReadTime = now
+   end
+
+   if now-lastPunchTime >= punchDelay then
+       checkPunch()
+       lastPunchTime = now
    end
 end
 
@@ -837,8 +972,6 @@ function Punch:init(x,y)
    self.buffer = ""
    self.drawCount = 4
    self.paperTape = PaperTapeEnd(self)
-   self.lastSaveName = ""
-   self.lastSaveTime = 0
 end
 
 function Punch:draw()
@@ -1783,6 +1916,19 @@ function Teletype:init(x,y,w,h)
    self.y = y
    self.height = h
    self.width = w
+   self:clear()
+   self.margin = 10
+   self.charMask = Processor.octal(177)
+   self.LF = Processor.octal(12)
+   self.CR = Processor.octal(15)
+   self.BEL = Processor.octal(07)
+   self.FF = Processor.octal(14)
+   self.scrollBottom = 1
+   self.scrollStart = 0
+   self.scrolling = false
+end
+
+function Teletype:clear()
    self.charCount = 0
    self.chars = {}
    self.charPos = 0
@@ -1792,15 +1938,8 @@ function Teletype:init(x,y,w,h)
    self.lineStartPos = {}
    self.lineStartPos[1] = 0
    self.lastLineDrawn = 0
-   self.margin = 10
+   self.lastCharDrawn = 0
    self.drawCount = 5
-   self.charMask = Processor.octal(177)
-   self.LF = Processor.octal(12)
-   self.CR = Processor.octal(15)
-   self.BEL = Processor.octal(07)
-   self.scrollBottom = 1
-   self.scrollStart = 0
-   self.scrolling = false
 end
 
 function Teletype:draw()
@@ -1864,10 +2003,11 @@ function Teletype:drawChar(charIndex, justDrawOneChar)
    local char = self.chars[charIndex]
    if (char == self.CR) then
        self.screenx = 0
-   elseif (char == self.LF) or (char == self.BEL) then
+   elseif (char == self.LF) or (char == self.BEL) or (char == self.FF) or (char == 0) then
        -- nothing to do.
    else
-       if (not justDrawOneChar) or (charIndex == self.charCount) then
+       if (not justDrawOneChar) or (charIndex > self.lastCharDrawn) then
+           self.lastCharDrawn = charIndex
            local charx = self.screenx*self.cw+self.x+self.margin
            local chary = self.screeny*self.ch+self.y+self.margin
            text(ASCII[char], charx, chary)
@@ -1917,15 +2057,20 @@ function Teletype:type(c)
    self.chars[self.charCount] = c
 
    if (c == self.LF) then
-       self.line = self.line + 1
-       self.lines[self.line]=self.charCount
-       self.lineStartPos[self.line] = self.charPos
+       self:startNextLine()
        sound("Game Sounds One:Kick")
    elseif (c == self.CR) then
        self.charPos = 0
        sound("Game Sounds One:Assembly 6")
    elseif (c == self.BEL) then
        sound("Game Sounds One:Bell 2")
+   elseif (c == self.FF) then
+       self:startNextLine()
+       self:startNextLine()
+       self.charPos = 0
+       sound("Game Sounds One:Assembly 5")
+   elseif(c == 0) then
+       -- Nothing to do.
    else
        self.charPos = self.charPos + 1
        sound("Game Sounds One:Punch 2")
@@ -1934,6 +2079,12 @@ function Teletype:type(c)
            sound("Game Sounds One:Bell 2")
        end
    end
+end
+
+function Teletype:startNextLine()
+   self.line = self.line + 1
+   self.lines[self.line]=self.charCount
+   self.lineStartPos[self.line] = self.charPos
 end
 
 --# ProcessorTest
