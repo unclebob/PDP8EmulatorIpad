@@ -65,4 +65,6 @@ Refactoring in this environment (iPad screen, and bluetooth keyboard) is not ide
 nor any really helpful tools.  Even selecting code on the screen is a pain.  Fingers are nowhere near as precise as a mouse.
 Therefore, my functions are generally too large, and I have a significant backlog of cleanup to do.  But I'm doing it.  _Be patient._
 
+I've managed to refactor the main program a bit, getting rid of most of the global variables, and putting them into the PDP8 class.  In order to verify each refactoring step I need to run the emulator, push the test button, quit the emulator, run it again, and then do some specific testing.  The cycle time is about 60 seconds; which isn't too bad.  However, it's long enough that I've begun to consider some kind of integration testing functions that I can run automatically.  
+
 

@@ -38,8 +38,8 @@ end
 
 function ProjectIO:rackPrefix()
    local rackPrefix = ""
-   if (rackNumber > 1) then
-       rackPrefix = string.format("rk%d_", rackNumber)
+   if (pdp8.currentRackNumber > 1) then
+       rackPrefix = string.format("rk%d_", pdp8.currentRackNumber)
    end
    return rackPrefix
 end
@@ -48,123 +48,36 @@ end
 -- PDP8
 -- Test on other ipads.
 
-backingMode(RETAINED)
+PDP8 = class()
 
-function dummy()
+function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
    readText("Dropbox:listing")
 end
 
 function setup()
+   setupScreenAndKeyboard()
+   Ascii:init()
+   pdp8 = PDP8()
+   pdp8:setup()
+end
+
+function setupScreenAndKeyboard()
+   backingMode(RETAINED)
    supportedOrientations(LANDSCAPE_ANY)
    showKeyboard()
    displayMode(FULLSCREEN_NO_BUTTONS)
-   tics = 0
-   initAscii()
-   rightFrame = WIDTH-557
-   midFrame = rightFrame-110
-   leftFrame = 0
-   controlPanel = ControlPanel(rightFrame,80)
-   tty = Teletype(rightFrame, 90+controlPanel.height, controlPanel.width, HEIGHT-(90+controlPanel.height)-10)
-
-   punch = Punch(midFrame, HEIGHT-210)
-   punchSpeed = Button(midFrame-40, punch.bottom+130, "FAST", setPunchSpeed)
-   punchFast = 0
-   punchClear = MomentaryButton(midFrame-40, punch.bottom+65, "JUNK", clearPunch)
-   punchLeaderButton = MomentaryButton(midFrame-40, punch.bottom, "LEAD", punchLeader)
-
-   tapeReader = TapeReader(midFrame, 350)
-   readerSpeed = Button(midFrame-40, tapeReader.bottom+130, "FAST", setReaderSpeed)
-   readerFast = 0
-   readerAutoButton = Button(midFrame-40, tapeReader.bottom+65, "AUTO", setReaderAuto)
-
-   rimPanel = RimPanel(midFrame,90)    
-
-   rack = Rack(0,100,midFrame-leftFrame)
-   rackControls = RackControls(0,40,Shelf.width*2)
-   rackNumber = 1
-   racks = {}
-   racks[1] = rack
-   loadRack()
-
-   test = MomentaryButton(midFrame, 10, "Test", testAll)
-   ttySpeed = Button(midFrame+50, 10, "TTY FAST", setTtySpeed)
-   ttyFast = 0
-
-   instructionsPerSecond = 0
-   framesPerSecond = 0
-   lastFrameCount = 0
-   lastTimePeriod = 0    
-
-   statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)
-
-   quitButton = MomentaryButton(rightFrame+100, 10, "QuitX2", quitProgram)
-
-   saveListingButton = MomentaryButton(rightFrame+200, 10, "Save TTY", saveListing)
-   junkTtyButton =  MomentaryButton(rightFrame+300, 10, "Junk TTY", junkTty)
-   quitTime = 0
 end
 
 function draw()
-   local time = os.time()
-   if time ~= lastTimePeriod then
-       lastTimePeriod = time
-       instructionsPerSecond = controlPanel.instructions
-       controlPanel.instructions = 0
-       framesPerSecond = tics-lastFrameCount
-       lastFrameCount = tics
-   end    
-   tics = tics + 1
-   if tics < 5 then
-       background(0,0,0,255)
-   end
-   controlPanel:draw()
-   tty:draw()
-
-   punch:draw()  
-   tapeReader:draw()
-
-   test:draw()
-   rimPanel:draw()
-
-   rack:draw()
-   rackControls:draw()
-   statsPanel:draw()
-   readerSpeed:draw()
-   readerAutoButton:draw()
-   punchSpeed:draw()
-   punchClear:draw()
-   punchLeaderButton:draw()
-   ttySpeed:draw()
-   quitButton:draw()
-   saveListingButton:draw()
-   junkTtyButton:draw()
+   pdp8:draw()
 end
 
 function touched(t)
-   controlPanel:touched(t)
-   tapeReader:touched(t)
-   punch:touched(t)
-   tty:touched(t)
+   pdp8:touched(t)
+end
 
-   test:touched(t)
-   statsPanel:touched(t)
-   punchSpeed:touched(t)
-   punchClear:touched(t)
-   punchLeaderButton:touched(t)
-   readerSpeed:touched(t)
-   readerAutoButton:touched(t)
-   ttySpeed:touched(t)
-   quitButton:touched(t)
-   saveListingButton:touched(t)
-   junkTtyButton:touched(t)
-
-   Shelf.wasTouched = false
-   rackControls:touched(t)
-   rack:touched(t)
-   if Shelf.wasTouched == false and selectedShelf ~= nil and t.state==BEGAN then
-       selectedShelf:unselect()
-       selectedShelf = nil
-   end
+function keyboard(key)
+   pdp8:keyboard(key)
 end
 
 function setupText()
@@ -174,7 +87,133 @@ function setupText()
    font("ArialMT")
 end
 
-function keyboard(key)
+function testAll() 
+   displayMode(STANDARD)
+   local t = Test()
+   mainTest(t)
+   ControlPanel.test(t)
+end
+
+function mainTest(t)
+   t:assertEquals(nil, extractRackFromFileName("fileName"), "ExtractRack1")
+   t:assertEquals(1, extractRackFromFileName("rk01_name"), "ExtractRack2")
+   local rackNumber, name = extractRackFromFileName("rk99_cr_name")
+   t:assertEquals(99, rackNumber, "ExtractRack3")
+   t:assertEquals("cr_name", name, "ExtractRack4")
+end
+
+function PDP8:setup()
+   self.tics = 0
+   self.rightFrame = WIDTH-557
+   self.midFrame = self.rightFrame-110
+   self.leftFrame = 0
+   self.controlPanel = ControlPanel(self.rightFrame,80)
+
+   local ttyBottom = 90+self.controlPanel.height
+   self.tty = Teletype(self.rightFrame, ttyBottom, self.controlPanel.width, HEIGHT-ttyBottom-10)
+
+   self.punch = Punch(self.midFrame, HEIGHT-210)
+   self.punchSpeed = Button(self.midFrame-40, self.punch.bottom+130, "FAST", setPunchSpeed)
+   self.punchFast = 0
+   self.punchClear = MomentaryButton(self.midFrame-40, self.punch.bottom+65, "JUNK", clearPunch)
+   self.punchLeaderButton = MomentaryButton(self.midFrame-40, self.punch.bottom, "LEAD", punchLeader)
+
+   self.tapeReader = TapeReader(self.midFrame, 350)
+   self.readerSpeed = Button(self.midFrame-40, self.tapeReader.bottom+130, "FAST", setReaderSpeed)
+   self.readerFast = 0
+   self.readerAutoButton = Button(self.midFrame-40, self.tapeReader.bottom+65, "AUTO", setReaderAuto)
+
+   self.rimPanel = RimPanel(self.midFrame,90)    
+
+   self.currentRack = Rack(0,100,self.midFrame-self.leftFrame)
+   self.rackControls = RackControls(0,40,Shelf.width*2)
+   self.currentRackNumber = 1
+   self.racks = {}
+   self.racks[1] = self.currentRack
+   self:loadRack()
+
+   self.testButton = MomentaryButton(self.midFrame, 10, "Test", testAll)
+   self.ttySpeed = Button(self.midFrame+50, 10, "TTY FAST", setTtySpeed)
+   self.ttyFast = 0
+
+   self.instructionsPerSecond = 0
+   self.framesPerSecond = 0
+   self.lastFrameCount = 0
+   self.lastTimePeriod = 0    
+
+   self.statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)
+
+   self.quitButton = MomentaryButton(self.rightFrame+100, 10, "QuitX2", quitProgram)
+
+   self.saveListingButton = MomentaryButton(self.rightFrame+200, 10, "Save TTY", saveListing)
+   self.junkTtyButton =  MomentaryButton(self.rightFrame+300, 10, "Junk TTY", junkTty)
+   self.quitTime = 0
+end
+
+function PDP8:draw()
+   local time = os.time()
+   if time ~= self.lastTimePeriod then
+       self.lastTimePeriod = time
+       self.instructionsPerSecond = self.controlPanel.instructions
+       self.controlPanel.instructions = 0
+       self.framesPerSecond = self.tics-self.lastFrameCount
+       self.lastFrameCount = self.tics
+   end    
+   self.tics = self.tics + 1
+   if self.tics < 5 then
+       background(0,0,0,255)
+   end
+   self.controlPanel:draw()
+   self.tty:draw()
+
+   self.punch:draw()  
+   self.tapeReader:draw()
+
+   self.testButton:draw()
+   self.rimPanel:draw()
+
+   self.currentRack:draw()
+   self.rackControls:draw()
+   self.statsPanel:draw()
+   self.readerSpeed:draw()
+   self.readerAutoButton:draw()
+   self.punchSpeed:draw()
+   self.punchClear:draw()
+   self.punchLeaderButton:draw()
+   self.ttySpeed:draw()
+   self.quitButton:draw()
+   self.saveListingButton:draw()
+   self.junkTtyButton:draw()
+end
+
+function PDP8:touched(t)
+   self.controlPanel:touched(t)
+   self.tapeReader:touched(t)
+   self.punch:touched(t)
+   self.tty:touched(t)
+
+   self.testButton:touched(t)
+   self.statsPanel:touched(t)
+   self.punchSpeed:touched(t)
+   self.punchClear:touched(t)
+   self.punchLeaderButton:touched(t)
+   self.readerSpeed:touched(t)
+   self.readerAutoButton:touched(t)
+   self.ttySpeed:touched(t)
+   self.quitButton:touched(t)
+   self.saveListingButton:touched(t)
+   self.junkTtyButton:touched(t)
+
+   Shelf.wasTouched = false
+   self.rackControls:touched(t)
+   self.currentRack:touched(t)
+   if Shelf.wasTouched == false and selectedShelf ~= nil and t.state==BEGAN then
+       selectedShelf:unselect()
+       selectedShelf = nil
+   end
+end
+
+function PDP8:keyboard(key)
    if selectedShelf == nil then
        sendToTTY(key)
    else
@@ -199,35 +238,39 @@ function sendToTTY(key)
        code =128+(key:byte(1))
    end
 
-   controlPanel.processor.device[3].buffer = code
-   controlPanel.processor.device[3].ready = 1 
+   loadKeyboardBuffer(code)
+end
+
+function loadKeyboardBuffer(code)
+   pdp8.controlPanel.processor.device[3].buffer = code
+   pdp8.controlPanel.processor.device[3].ready = 1 
 end
 
 function checkReader()
-   local reader = controlPanel.processor.device[1]
-   if (tapeReader.buffer:len() > 0) then
+   local reader = pdp8.controlPanel.processor.device[1]
+   if (pdp8.tapeReader.buffer:len() > 0) then
        if (readerAuto==1) then
-           sendToTTY(string.char(tapeReader:read()))
+           loadKeyboardBuffer(pdp8.tapeReader:read())
        elseif (reader.ready == 0) then
            reader.ready = 1
-           reader.buffer = tapeReader:read()
+           reader.buffer = pdp8.tapeReader:read()
        end
    end
 end
 
 function checkTTY()
-   local dev = controlPanel.processor.device[4]
+   local dev = pdp8.controlPanel.processor.device[4]
    if dev.ready == 0 and dev.operating then
-       tty:type(dev.buffer)
+       pdp8.tty:type(dev.buffer)
        dev.ready = 1
        dev.operating = false
    end
 end
 
 function checkPunch()
-   local dev = controlPanel.processor.device[2]
+   local dev = pdp8.controlPanel.processor.device[2]
    if dev.ready == 0 and dev.operating then
-       punch:punch(dev.buffer)
+       pdp8.punch:punch(dev.buffer)
        dev.ready = 1
        dev.operating = false
    end
@@ -242,7 +285,7 @@ function save()
 
    data = ""
    for addr=0,4095,1 do
-       data = data..controlPanel.processor.memory[addr]..':'
+       data = data..self.controlPanel.processor.memory[addr]..':'
    end
    shelf.io:write(name, data) 
    Rack.drawCount = 1
@@ -256,15 +299,15 @@ function load()
        for addr=0,4095,1 do
            local colon = string.find(data, ':', pos, true)
            local token = string.sub(data, pos, colon-1)
-           controlPanel.processor.memory[addr]=0+token
+           pdp8.controlPanel.processor.memory[addr]=0+token
            pos = colon+1
        end
    end
 end
 
-function loadRack() 
+function PDP8:loadRack() 
    loadRackFromDropbox()  
-   loadRackFromProject()
+   self:loadRackFromProject()
 end
 
 function loadRackFromDropbox()
@@ -277,22 +320,22 @@ function loadRackFromDropbox()
    end
 end
 
-function loadRackFromProject()
+function PDP8:loadRackFromProject()
    local files = listProjectData()
    for i=1, #files do
        local rackNo, name = extractRackFromFileName(files[i])
        if (rackNo ~= nil) then
-           rackNumber = rackNo
-           if racks[rackNo] == nil then
-               racks[rackNo] = Rack(0, 100, midFrame-leftFrame)
+           self.currentRackNumber = rackNo
+           if self.racks[rackNo] == nil then
+               self.racks[rackNo] = Rack(0, 100, self.midFrame-self.leftFrame)
            end
-           loadShelf(racks[rackNo]:findEmptyShelf(), name)
+           loadShelf(self.racks[rackNo]:findEmptyShelf(), name)
        else
            loadShelf(findEmptyShelf(), files[i])
        end
    end
-   rackNumber = 1
-   rack = racks[1]
+   self.currentRackNumber = 1
+   self.currentRack = self.racks[1]
 end
 
 function extractRackFromFileName(fileName)
@@ -318,36 +361,36 @@ function loadShelf(shelf, fileName)
 end
 
 function findEmptyShelf()
-   local shelf = rack:findEmptyShelf()
+   local shelf = pdp8.currentRack:findEmptyShelf()
    if shelf == nil then
-       rackNumber = #racks+1
-       racks[rackNumber] = Rack(0, 100, midFrame-leftFrame)
-       rack = racks[rackNumber]
+       pdp8.currentRackNumber = #pdp8.racks+1
+       pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, self.midFrame-self.leftFrame)
+       pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
        Rack.drawCount = 1
-       shelf = rack:findEmptyShelf()
+       shelf = pdp8.currentRack:findEmptyShelf()
    end
    return shelf
 end
 
 function nextRack()
-   rackNumber = rackNumber+1
-   if racks[rackNumber] == nil then
-       racks[rackNumber] = Rack(0,100,midFrame-leftFrame)
+   pdp8.currentRackNumber = pdp8.currentRackNumber+1
+   if pdp8.racks[pdp8.currentRackNumber] == nil then
+       pdp8.racks[pdp8.currentRackNumber] = Rack(0,100,pdp8.midFrame-pdp8.leftFrame)
    end
-   rack = racks[rackNumber]
+   pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
    Rack.drawCount = 1
 end
 
 function prevRack()
-   if rackNumber > 1 then
-       rackNumber = rackNumber-1
-       rack = racks[rackNumber]
+   if pdp8.currentRackNumber > 1 then
+       pdp8.currentRackNumber = pdp8.currentRackNumber-1
+       pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
        Rack.drawCount = 1
    end
 end
 
 function setReaderSpeed(speed)
-   readerFast = speed
+   pdp8.readerFast = speed
 end
 
 function setReaderAuto(auto)
@@ -355,12 +398,12 @@ function setReaderAuto(auto)
 end
 
 function setPunchSpeed(speed)
-   punchFast = speed
+   pdp8.punchFast = speed
 end
 
 function clearPunch()
-   punch.buffer = ""
-   punch.drawCount = 1
+   pdp8.punch.buffer = ""
+   pdp8.punch.drawCount = 1
    sound("Game Sounds One:Land")
 end
 
@@ -369,22 +412,22 @@ function punchLeader()
    for i=1,15 do
        leader=leader..string.char(Processor.octal(200))
    end
-   punch.buffer = punch.buffer..leader
-   punch.drawCount = 1
+   pdp8.punch.buffer = pdp8.punch.buffer..leader
+   pdp8.punch.drawCount = 1
 end
 
 function setTtySpeed(speed)
-   ttyFast = speed
+   pdp8.ttyFast = speed
 end
 
 function quitProgram() 
    now = os.clock()
-   if now-quitTime < 1 then
+   if now-pdp8.quitTime < 1 then
        sound("Game Sounds One:Assembly 5")
        while os.clock() - now < 0.5 do end
        close()
    end
-   quitTime = now
+   pdp8.quitTime = now
 end
 
 function saveListing() 
@@ -393,7 +436,7 @@ end
 
 function makeTextFromTty()
    s = ""
-   for i,c in pairs(tty.chars) do
+   for i,c in pairs(pdp8.tty.chars) do
        if c == Processor.octal(12) then
            -- ignore
        elseif c == Processor.octal(14) then
@@ -406,22 +449,9 @@ function makeTextFromTty()
 end
 
 function junkTty() 
-   tty:clear()
+   pdp8.tty:clear()
 end
 
-function testAll() 
-   local t = Test()
-   mainTest(t)
-   ControlPanel.test(t)
-end
-
-function mainTest(t)
-   t:assertEquals(nil, extractRackFromFileName("fileName"), "ExtractRack1")
-   t:assertEquals(1, extractRackFromFileName("rk01_name"), "ExtractRack2")
-   local rackNumber, name = extractRackFromFileName("rk99_cr_name")
-   t:assertEquals(99, rackNumber, "ExtractRack3")
-   t:assertEquals("cr_name", name, "ExtractRack4")
-end
 
 --# Bit
 Bit = class()
@@ -623,7 +653,7 @@ function ControlPanel:init(x,y)
    self.processor = Processor(self.sr, self.run)
    self.width = self.ac:width() + ControlPanel.frame*2
    self.height = 330+ControlPanel.frame
-   instructionsPerSecond = 0
+   pdp8.instructionsPerSecond = 0
    self.instructions = 0
    self.drawCount = 4
    lastTtyTime = 0
@@ -675,15 +705,15 @@ function ControlPanel:checkDevs()
    local punchDelay = .1
    local readerDelay = .1
 
-   if ttyFast == 1 then
+   if pdp8.ttyFast == 1 then
        ttyDelay = 0
    end
 
-   if punchFast == 1 then
+   if pdp8.punchFast == 1 then
        punchDelay = 0.02
    end
 
-   if readerFast == 1 then
+   if pdp8.readerFast == 1 then
        readerDelay = .01
    end
 
@@ -1110,7 +1140,7 @@ function RackControls:draw()
    textMode(CORNER)
    font("Courier")
    fontSize(15)
-   local label = "Rack:"..rackNumber
+   local label = "Rack:"..pdp8.currentRackNumber
    local w,h = textSize(label)
    fill(0)
    stroke(0)
@@ -1361,12 +1391,13 @@ function StatsPanel:init(x,y)
 end
 
 function StatsPanel:draw()
-   local msg=string.format("%4d fps\n%4d ips\n%4d ipf",framesPerSecond ,instructionsPerSecond, cyclesPerFrame)
+   local msg=string.format("%4d fps\n%4d ips\n%4d ipf",pdp8.framesPerSecond ,pdp8.instructionsPerSecond, cyclesPerFrame)
    font("Courier")
    fontSize(15)
    local w,h=textSize(msg)
    fill(0)
    stroke(255)
+   strokeWidth(1)
    local x = self.speed.width+20+self.x
    rect(x,self.y,w+10, h+10)
    fill(255)
@@ -1408,7 +1439,7 @@ function TapeReader:draw()
        self:drawReaderBackground()
        self.paperTape:draw()
        self:drawStack()
-       self.paperTape:drawByte(self.paperTape.tapeLeft+self.paperTape.tapeMargin/2,self.bottom+self.height-28, controlPanel.processor.device[1].buffer)
+       self.paperTape:drawByte(self.paperTape.tapeLeft+self.paperTape.tapeMargin/2,self.bottom+self.height-28, pdp8.controlPanel.processor.device[1].buffer)
        self.drawCount = self.drawCount - 1
    end
 end
@@ -1818,6 +1849,7 @@ function Processor.asOctal(o)
 end
 
 --# Ascii
+Ascii = class()
 
 function setAscii(code, char)
    code = Processor.mask(Processor.octal(177), Processor.octal(code))
@@ -1825,7 +1857,7 @@ function setAscii(code, char)
    ASCII[code + Processor.octal(200)] = char
 end
 
-function initAscii()
+function Ascii:init()
    ASCII = {}
    for i=1,256 do
        ASCII[i]=""
@@ -2127,7 +2159,7 @@ function Processor:test(t)
 
    for addr = 8,15 do
        self.memory[addr] = Processor.octal(1000)
-       t:octalEquals(1001, self:getEffectiveAddress(Processor.I + addr), 
+       t:octalEquals(1001, self:getEffectiveAddress(Processor.I + addr),
            "autoindex1-"..Processor.asOctal(addr))
        t:octalEquals(1001, self.memory[addr], "autoindex2-"..Processor.asOctal(addr))
    end
