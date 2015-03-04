@@ -103,75 +103,82 @@ function mainTest(t)
 end
 
 function PDP8:setup()
-   self.tics = 0
+   self:setupFrameDimensions()    
+   self:setupTimingVariables()
+   self:setupFrame()
+end
+
+function PDP8:setupFrame()     
+   self.controlPanel = ControlPanel(self.rightFrame,80)
+   self:setupTTY()    
+   self:setupPunch()
+   self:setupReader()
+   self.rimPanel = RimPanel(self.midFrame,90)        
+   self:setupRacks()
+   self.testButton = MomentaryButton(self.midFrame, 10, "Test", testAll)
+   self.statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)    
+   self.quitButton = MomentaryButton(self.rightFrame+100, 10, "QuitX2", quitProgram)
+   self.quitTime = 0
+end
+
+function PDP8:setupFrameDimensions()
    self.rightFrame = WIDTH-557
    self.midFrame = self.rightFrame-110
    self.leftFrame = 0
-   self.controlPanel = ControlPanel(self.rightFrame,80)
+end
 
+function PDP8:setupTimingVariables()
+   self.tics = 0
+   self.instructionsPerSecond = 0
+   self.framesPerSecond = 0
+   self.lastFrameCount = 0
+   self.lastTimePeriod = 0  
+end
+
+function PDP8:setupTTY()
    local ttyBottom = 90+self.controlPanel.height
    self.tty = Teletype(self.rightFrame, ttyBottom, self.controlPanel.width, HEIGHT-ttyBottom-10)
+   self.junkTtyButton =  MomentaryButton(self.rightFrame+300, 10, "Junk TTY", junkTty)
+   self.ttySpeed = Button(self.midFrame+50, 10, "TTY FAST", setTtySpeed)
+   self.ttyFast = 0    
+   self.saveListingButton = MomentaryButton(self.rightFrame+200, 10, "Save TTY", saveListing)
+end
 
+function PDP8:setupPunch() 
    self.punch = Punch(self.midFrame, HEIGHT-210)
    self.punchSpeed = Button(self.midFrame-40, self.punch.bottom+130, "FAST", setPunchSpeed)
    self.punchFast = 0
    self.punchClear = MomentaryButton(self.midFrame-40, self.punch.bottom+65, "JUNK", clearPunch)
    self.punchLeaderButton = MomentaryButton(self.midFrame-40, self.punch.bottom, "LEAD", punchLeader)
+end
 
+function PDP8:setupReader()
    self.tapeReader = TapeReader(self.midFrame, 350)
    self.readerSpeed = Button(self.midFrame-40, self.tapeReader.bottom+130, "FAST", setReaderSpeed)
    self.readerFast = 0
    self.readerAutoButton = Button(self.midFrame-40, self.tapeReader.bottom+65, "AUTO", setReaderAuto)
+end
 
-   self.rimPanel = RimPanel(self.midFrame,90)    
-
+function PDP8:setupRacks()
    self.currentRack = Rack(0,100,self.midFrame-self.leftFrame)
    self.rackControls = RackControls(0,40,Shelf.width*2)
    self.currentRackNumber = 1
    self.racks = {}
    self.racks[1] = self.currentRack
    self:loadRack()
-
-   self.testButton = MomentaryButton(self.midFrame, 10, "Test", testAll)
-   self.ttySpeed = Button(self.midFrame+50, 10, "TTY FAST", setTtySpeed)
-   self.ttyFast = 0
-
-   self.instructionsPerSecond = 0
-   self.framesPerSecond = 0
-   self.lastFrameCount = 0
-   self.lastTimePeriod = 0    
-
-   self.statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)
-
-   self.quitButton = MomentaryButton(self.rightFrame+100, 10, "QuitX2", quitProgram)
-
-   self.saveListingButton = MomentaryButton(self.rightFrame+200, 10, "Save TTY", saveListing)
-   self.junkTtyButton =  MomentaryButton(self.rightFrame+300, 10, "Junk TTY", junkTty)
-   self.quitTime = 0
 end
 
 function PDP8:draw()
-   local time = os.time()
-   if time ~= self.lastTimePeriod then
-       self.lastTimePeriod = time
-       self.instructionsPerSecond = self.controlPanel.instructions
-       self.controlPanel.instructions = 0
-       self.framesPerSecond = self.tics-self.lastFrameCount
-       self.lastFrameCount = self.tics
-   end    
-   self.tics = self.tics + 1
+   self:updateTimingStatistics()
    if self.tics < 5 then
        background(0,0,0,255)
    end
    self.controlPanel:draw()
-   self.tty:draw()
-
+   self.tty:draw()   
    self.punch:draw()  
-   self.tapeReader:draw()
-
+   self.tapeReader:draw()   
    self.testButton:draw()
-   self.rimPanel:draw()
-
+   self.rimPanel:draw()    
    self.currentRack:draw()
    self.rackControls:draw()
    self.statsPanel:draw()
@@ -186,12 +193,23 @@ function PDP8:draw()
    self.junkTtyButton:draw()
 end
 
+function PDP8:updateTimingStatistics()
+   local time = os.time()
+   if time ~= self.lastTimePeriod then
+       self.lastTimePeriod = time
+       self.instructionsPerSecond = self.controlPanel.instructions
+       self.controlPanel.instructions = 0
+       self.framesPerSecond = self.tics-self.lastFrameCount
+       self.lastFrameCount = self.tics
+   end    
+   self.tics = self.tics + 1
+end
+
 function PDP8:touched(t)
    self.controlPanel:touched(t)
    self.tapeReader:touched(t)
    self.punch:touched(t)
    self.tty:touched(t)
-
    self.testButton:touched(t)
    self.statsPanel:touched(t)
    self.punchSpeed:touched(t)
@@ -203,21 +221,24 @@ function PDP8:touched(t)
    self.quitButton:touched(t)
    self.saveListingButton:touched(t)
    self.junkTtyButton:touched(t)
+   self:touchRack(t)
+end
 
+function PDP8:touchRack(t)
    Shelf.wasTouched = false
    self.rackControls:touched(t)
    self.currentRack:touched(t)
-   if Shelf.wasTouched == false and selectedShelf ~= nil and t.state==BEGAN then
-       selectedShelf:unselect()
-       selectedShelf = nil
+   if Shelf.wasTouched == false and self.selectedShelf ~= nil and t.state==BEGAN then
+       self.selectedShelf:unselect()
+       self.selectedShelf = nil
    end
 end
 
 function PDP8:keyboard(key)
-   if selectedShelf == nil then
+   if self.selectedShelf == nil then
        sendToTTY(key)
    else
-       selectedShelf:key(key)
+       self.selectedShelf:key(key)
    end
 end
 
@@ -292,8 +313,8 @@ function save()
 end
 
 function load()
-   if selectedShelf ~= nil and selectedShelf.type == Shelf.CORE then
-       data = selectedShelf.io:read(selectedShelf.name)
+   if pdp8.selectedShelf ~= nil and pdp8.selectedShelf.type == Shelf.CORE then
+       data = pdp8.selectedShelf.io:read(pdp8.selectedShelf.name)
 
        local pos = 1
        for addr=0,4095,1 do
@@ -1259,7 +1280,7 @@ end
 
 function Shelf:draw()
    fill(0)
-   if (self == selectedShelf) then
+   if (self == pdp8.selectedShelf) then
        stroke(255,0,0)
    else
        stroke(255)
@@ -1325,13 +1346,13 @@ function Shelf:touched(touch)
        touch.state == BEGAN) then
        Shelf.wasTouched = true;
        Rack.drawCount = 1
-       if selectedShelf ~= nil then
-           selectedShelf:unselect()
+       if pdp8.selectedShelf ~= nil then
+           pdp8.selectedShelf:unselect()
        end
-       if (selectedShelf == self) then
-           selectedShelf = nil
+       if (pdp8.selectedShelf == self) then
+           pdp8.selectedShelf = nil
        else
-           selectedShelf = self
+           pdp8.selectedShelf = self
            self:select()
        end
    end
@@ -1484,10 +1505,10 @@ function TapeReader:touched(t)
 end
 
 function TapeReader:hit()
-   if selectedShelf == nil then
+   if pdp8.selectedShelf == nil then
        self.buffer = ""
    else
-       local ptText = selectedShelf.io:read(selectedShelf.name)
+       local ptText = pdp8.selectedShelf.io:read(pdp8.selectedShelf.name)
        self.buffer = self:ptToBinary(ptText)
    end
    self.drawCount = self.drawCount + 1
