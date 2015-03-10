@@ -113,7 +113,7 @@ function PDP8:setupFrame()
    self:setupTTY()    
    self:setupPunch()
    self:setupReader()
-   self.rimPanel = RimPanel(self.midFrame,90)        
+   self.rimPanel = RimPanel(self.midFrame,80)        
    self:setupRacks()
    self.testButton = MomentaryButton(self.midFrame, 10, "Test", testAll)
    self.statsPanel = StatsPanel(WIDTH-StatsPanel.width-10, 10)    
@@ -145,18 +145,19 @@ function PDP8:setupTTY()
 end
 
 function PDP8:setupPunch() 
-   self.punch = Punch(self.midFrame, HEIGHT-210)
-   self.punchSpeed = Button(self.midFrame-40, self.punch.bottom+130, "FAST", setPunchSpeed)
+   self.punch = Punch(self.midFrame, HEIGHT-Punch.height)
+   self.punchSpeed = Button(self.midFrame-40, self.punch.bottom+145, "FAST", setPunchSpeed)
    self.punchFast = 0
-   self.punchClear = MomentaryButton(self.midFrame-40, self.punch.bottom+65, "JUNK", clearPunch)
-   self.punchLeaderButton = MomentaryButton(self.midFrame-40, self.punch.bottom, "LEAD", punchLeader)
+   self.punchClear = MomentaryButton(self.midFrame-40, self.punch.bottom+85, "JUNK", clearPunch)
+   self.punchLeaderButton = MomentaryButton(self.midFrame-40, self.punch.bottom+25, "LEAD", punchLeader)
+   self.punchAutoButton = Button(self.midFrame-40, self.punch.bottom-35, "AUTO", setPunchAuto)
 end
 
 function PDP8:setupReader()
-   self.tapeReader = TapeReader(self.midFrame, 350)
-   self.readerSpeed = Button(self.midFrame-40, self.tapeReader.bottom+130, "FAST", setReaderSpeed)
+   self.tapeReader = TapeReader(self.midFrame, 340)
+   self.readerSpeed = Button(self.midFrame-40, self.tapeReader.bottom+100, "FAST", setReaderSpeed)
    self.readerFast = 0
-   self.readerAutoButton = Button(self.midFrame-40, self.tapeReader.bottom+65, "AUTO", setReaderAuto)
+   self.readerAutoButton = Button(self.midFrame-40, self.tapeReader.bottom+35, "AUTO", setReaderAuto)
 end
 
 function PDP8:setupRacks()
@@ -187,6 +188,7 @@ function PDP8:draw()
    self.punchSpeed:draw()
    self.punchClear:draw()
    self.punchLeaderButton:draw()
+   self.punchAutoButton:draw()
    self.ttySpeed:draw()
    self.quitButton:draw()
    self.saveListingButton:draw()
@@ -215,6 +217,7 @@ function PDP8:touched(t)
    self.punchSpeed:touched(t)
    self.punchClear:touched(t)
    self.punchLeaderButton:touched(t)
+   self.punchAutoButton:touched(t)
    self.readerSpeed:touched(t)
    self.readerAutoButton:touched(t)
    self.ttySpeed:touched(t)
@@ -271,7 +274,14 @@ function checkReader()
    local reader = pdp8.controlPanel.processor.device[1]
    if (pdp8.tapeReader.buffer:len() > 0) then
        if (readerAuto==1) then
-           loadKeyboardBuffer(pdp8.tapeReader:read())
+           char = pdp8.tapeReader:read()
+           loadKeyboardBuffer(char)
+           if char == Processor.octal(215) then
+               pdp8.controlPanel.autoReaderDelay = .5
+           else
+               pdp8.controlPanel.autoReaderDelay = 0
+           end
+
        elseif (reader.ready == 0) then
            reader.ready = 1
            reader.buffer = pdp8.tapeReader:read()
@@ -285,6 +295,9 @@ function checkTTY()
        pdp8.tty:type(dev.buffer)
        dev.ready = 1
        dev.operating = false
+       if punchAuto == 1 then
+           pdp8.punch:punch(dev.buffer)
+       end
    end
 end
 
@@ -306,7 +319,7 @@ function save()
 
    data = ""
    for addr=0,4095,1 do
-       data = data..self.controlPanel.processor.memory[addr]..':'
+       data = data..pdp8.controlPanel.processor.memory[addr]..':'
    end
    shelf.io:write(name, data) 
    Rack.drawCount = 1
@@ -418,6 +431,10 @@ function setReaderAuto(auto)
    readerAuto = auto   
 end
 
+function setPunchAuto(auto)
+   punchAuto = auto
+end
+
 function setPunchSpeed(speed)
    pdp8.punchFast = speed
 end
@@ -461,7 +478,7 @@ function makeTextFromTty()
        if c == Processor.octal(12) then
            -- ignore
        elseif c == Processor.octal(14) then
-           s = s.."\n\n----------------\n\n"
+           s = s.."\n\n----------------\n\n\f"
        else
            s = s..ASCII[c]
        end
@@ -680,6 +697,7 @@ function ControlPanel:init(x,y)
    lastTtyTime = 0
    lastReadTime = 0
    lastPunchTime = 0
+   self.autoReaderDelay = 0
 end
 
 function ControlPanel:draw()
@@ -722,9 +740,9 @@ function ControlPanel:draw()
 end
 
 function ControlPanel:checkDevs()
-   local ttyDelay = .1
+   local ttyDelay =  .1
    local punchDelay = .1
-   local readerDelay = .1
+   local readerDelay = .1 + self.autoReaderDelay
 
    if pdp8.ttyFast == 1 then
        ttyDelay = 0
@@ -1014,12 +1032,14 @@ end
 
 --# Punch
 Punch = class()
+Punch.height = 200
+Punch.width = 100
 
 function Punch:init(x,y)
    self.left = x
    self.bottom = y
-   self.height = 200
-   self.width = 100
+   self.height = Punch.height
+   self.width = Punch.width
    self.buffer = ""
    self.drawCount = 4
    self.paperTape = PaperTapeEnd(self)
@@ -1847,7 +1867,7 @@ end
 
 function Processor:handleInterruptInstruction(command)
    if (command == 1) then
-       self.ionPending = 30
+       self.ionPending = 3 -- set to 30 for slow ipads.
    elseif (command == 2) then
        self.ion = false
    end
@@ -2180,7 +2200,7 @@ function Processor:test(t)
 
    for addr = 8,15 do
        self.memory[addr] = Processor.octal(1000)
-       t:octalEquals(1001, self:getEffectiveAddress(Processor.I + addr),
+       t:octalEquals(1001, self:getEffectiveAddress(Processor.I + addr), 
            "autoindex1-"..Processor.asOctal(addr))
        t:octalEquals(1001, self.memory[addr], "autoindex2-"..Processor.asOctal(addr))
    end

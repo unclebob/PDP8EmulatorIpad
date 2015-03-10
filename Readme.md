@@ -5,6 +5,22 @@ This is my PDP8 Emulator for the iPad.  It's written in Lua using the Codea plat
 All the resources it uses are standard with Codea so you shouldn't have any difficulty
 running it as is.  
 
+### Getting Started
+Get Codea running on your iPad.  Tap the little arrow in the upper left, and a little panel will slide open on the left.  Tap the "assets" icon, and select the "Dropbox" item from the menu.  Link dropbox to Codea using your dropbox password.
+
+Get all the files from github and copy them into your dropbox account (probably using a computer).  
+
+Using the Dropbox app on the iPad, find the src/PDP8.lua file.  Open it in dropbox's text editor, and copy the entire contents to the clipboard.
+Also, using the Dropbox app, move all the files in the tapes directory to the Apps/Codea directory in Dropbox.
+
+Return to the Codea main screen, and once again tap the arrow at the upper left.  Again tap the "Assets" icon, and select the Dropbox menu.  You'll see a little 'sync' button at the upper right of the Dropbox pop-up.  Tap it.  This will synchronize the contents of the Apps/Codea dropbox folder with Codea's internal memory.  You'll have to do this every time you move something in and out of Codea's dropbox memory.
+
+Return again to the Codea main screen.  Push and hold the "Add New Project" button (the one with the big plus sign). Select the menu item that says "Paste into Project".  The PDP8 emulator code that was on the clipboard should be imported into this project.  Give it a name like PDP8 `<grin>`. 
+	
+Now run the emulator.  It should pop right up and the basic paper tapes should be in the selves at the left.  
+
+Toggle in the Rim loader, load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal.  Have fun! (If you don't know how to do this, or what this means, you need to read up on how to bootstrap a PDP8.  There's lots of documentation about how to do this on the Web.  You can also read the "Introduction to Programming" PDF in the `manuals` directory.) 
+
 ### Shelves and Racks
 To the left are the shelves of the current rack.  You can switch to other racks by pushing the "Next" and "Prev" buttons
 at the bottom.  The shelves can hold paper tapes and core images.  
