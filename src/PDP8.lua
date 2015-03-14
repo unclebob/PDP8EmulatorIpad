@@ -1,58 +1,32 @@
 
---# FileAccess
-
-
-DropboxReader = class()
-
-function DropboxReader:read(name) 
-   return readText("Dropbox:"..name)
-end
-
-function DropboxReader:write(name, data)
-   return false
-end
-
-NullIO = class()
-
-function NullIO:read(name)
-   return ""
-end
-
-function NullIO:write(name, data)
-   return false
-end
-
-ProjectIO = class()
-function ProjectIO:init(prefix)
-   self.prefix = prefix
-end
-
-function ProjectIO:read(name)
-   return readProjectData(self:rackPrefix()..self.prefix..name)
-end
-
-function ProjectIO:write(name, data)
-   saveProjectData(self:rackPrefix()..self.prefix..name, data)
-   return true;
-end
-
-function ProjectIO:rackPrefix()
-   local rackPrefix = ""
-   if (pdp8.currentRackNumber > 1) then
-       rackPrefix = string.format("rk%d_", pdp8.currentRackNumber)
-   end
-   return rackPrefix
-end
-
 --# Main
 -- PDP8
--- Test on other ipads.
 
-PDP8 = class()
+-- To Do:
+---- Test on other ipads.
+---- Check different screen resolutions.
+
+VERSION="201503140936"
+ION_DELAY=3 -- # of instructions after ION to wait before turning interrupts on.
+           -- Set to 30 for Slow iPads to fix Focal freeze.
+AUTO_CR_DELAY = 0 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
+FAST_TTY_DELAY = 0 -- As fast as possible
+FAST_READER_DELAY = 1/300 -- 300 characters per second.
+FAST_PUNCH_DELAY = 1/50 -- 50 characters per second
 
 function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
    readText("Dropbox:listing")
 end
+
+function drawVersion() 
+   font("CourierNewPS-BoldMT")
+   fontSize(10)
+   fill(255)
+   textMode(CORNER)
+   text(VERSION, 0, 0)
+end
+
+PDP8 = class()
 
 function setup()
    setupScreenAndKeyboard()
@@ -173,6 +147,7 @@ function PDP8:draw()
    self:updateTimingStatistics()
    if self.tics < 5 then
        background(0,0,0,255)
+       drawVersion()
    end
    self.controlPanel:draw()
    self.tty:draw()   
@@ -277,7 +252,7 @@ function checkReader()
            char = pdp8.tapeReader:read()
            loadKeyboardBuffer(char)
            if char == Processor.octal(215) then
-               pdp8.controlPanel.autoReaderDelay = .5
+               pdp8.controlPanel.autoReaderDelay = AUTO_CR_DELAY
            else
                pdp8.controlPanel.autoReaderDelay = 0
            end
@@ -490,6 +465,51 @@ function junkTty()
    pdp8.tty:clear()
 end
 
+
+--# FileAccess
+
+
+DropboxReader = class()
+
+function DropboxReader:read(name) 
+   return readText("Dropbox:"..name)
+end
+
+function DropboxReader:write(name, data)
+   return false
+end
+
+NullIO = class()
+
+function NullIO:read(name)
+   return ""
+end
+
+function NullIO:write(name, data)
+   return false
+end
+
+ProjectIO = class()
+function ProjectIO:init(prefix)
+   self.prefix = prefix
+end
+
+function ProjectIO:read(name)
+   return readProjectData(self:rackPrefix()..self.prefix..name)
+end
+
+function ProjectIO:write(name, data)
+   saveProjectData(self:rackPrefix()..self.prefix..name, data)
+   return true;
+end
+
+function ProjectIO:rackPrefix()
+   local rackPrefix = ""
+   if (pdp8.currentRackNumber > 1) then
+       rackPrefix = string.format("rk%d_", pdp8.currentRackNumber)
+   end
+   return rackPrefix
+end
 
 --# Bit
 Bit = class()
@@ -745,15 +765,15 @@ function ControlPanel:checkDevs()
    local readerDelay = .1 + self.autoReaderDelay
 
    if pdp8.ttyFast == 1 then
-       ttyDelay = 0
+       ttyDelay = FAST_TTY_DELAY
    end
 
    if pdp8.punchFast == 1 then
-       punchDelay = 0.02
+       punchDelay = FAST_PUNCH_DELAY
    end
 
    if pdp8.readerFast == 1 then
-       readerDelay = .01
+       readerDelay = FAST_READER_DELAY
    end
 
    local now = os.clock()
@@ -1867,7 +1887,7 @@ end
 
 function Processor:handleInterruptInstruction(command)
    if (command == 1) then
-       self.ionPending = 3 -- set to 30 for slow ipads.
+       self.ionPending = ION_DELAY
    elseif (command == 2) then
        self.ion = false
    end
