@@ -19,7 +19,39 @@ Return again to the Codea main screen.  Push and hold the "Add New Project" butt
 	
 Now run the emulator.  It should pop right up and the basic paper tapes should be in the selves at the left.  
 
-Toggle in the Rim loader, load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal.  Have fun! (If you don't know how to do this, or what this means, you need to read up on how to bootstrap a PDP8.  There's lots of documentation about how to do this on the Web.  You can also read the "Introduction to Programming" PDF in the `manuals` directory.) 
+Toggle in the Rim loader (see below), load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal.  Have fun! 
+
+### The Front Panel
+The lights on the front panel are also buttons.  You can tap them to change their state.  You can also slide your finger along the lights to change them as a group.
+
+ * `PC` - The Program Counter.  This is the address of the next instruction to be executed.
+ * `MA` - Memory Address.  Whenever memory is read or written, this is the address.  It's also the effective address for the `EXAM` and `DEP` buttons.
+ * `MB` - Memory Buffer.  Whenever the data stored into, or read from, memory, including with the `EXAM` and `DEP` buttons.
+ * `AC` - Accumulator.  This is the register that most math and comparison operations use.
+ * `SR` - Switch Register.  Use this to set program options.
+ * `LINK` - A one bit register that catches any carry-out when adding to the `AC`. 
+ * `ION` - Indicates if the interrupts have been turned on.
+ * `KBD` - The "Keyboard Ready" flag.  Is set if a character is waiting to be read from the keyboard input bufffer
+ * `TTY` - The "TTY" Ready flag.  Is set if the TTY is finished typing the last character and is ready to type a new character.
+
+To store a word in memory from the front panel, enter the address in the `MA` register.  Enter the data in the `MB` register.  Tap `DEP`.  The word will be stored, and the `MA` register will be incremented.
+
+To display the contents of a memory location on the front panel, enter the address into the `MA` register and tap `EXAM`.  The contents will appear in the `MB` register.
+
+To run a program, enter the starting address in the `PC` register and then tap `RUN`.  
+
+To single step through a program enter the starting address in the `PC` register and then tap `STEP`.  One instruction will be executed and the results will be displayed on the front panel.
+
+To stop a running program, simply tap the illuminated `RUN` button to turn it off and stop the computer.
+
+### Toggling in programs
+If you want to enter a program, like the RIM loader, into the computer through the front panel, follow the following procedure:
+1. Enter the starting address in the `MA` register
+2. Enter into the `MB` register the data you want stored at the address in the `MA` register
+3. Tap `DEP`.  Note that the `MA` register has been incremented by one.
+4. Go to step 2.
+
+This is slightly different from the procedure used on a real PDP8 front panel, because in this emulator all the lights are also buttons.  On a real PDP8, it was necessary to use the switch register to enter data into the PC and MA, and there were special buttons for that purpose.  
 
 ### Shelves and Racks
 To the left are the shelves of the current rack.  You can switch to other racks by pushing the "Next" and "Prev" buttons
