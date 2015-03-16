@@ -8,18 +8,40 @@ running it as is.
 ### Getting Started
 Get Codea running on your iPad.  Tap the little arrow in the upper left, and a little panel will slide open on the left.  Tap the "assets" icon, and select the "Dropbox" item from the menu.  Link dropbox to Codea using your dropbox password.
 
-Get all the files from github and copy them into your dropbox account (probably using a computer).  
+Get all the files from github and copy them into your dropbox account.  It's probably best to use a regular computer for this.  I haven't tried using the iPad to move these files to Dropbox, though it may be possible.  
 
 Using the Dropbox app on the iPad, find the src/PDP8.lua file.  Open it in dropbox's text editor, and copy the entire contents to the clipboard.
-Also, using the Dropbox app, move all the files in the tapes directory to the Apps/Codea directory in Dropbox.
+Also, using the Dropbox app, move all the files in the `tapes` directory to the `Apps/Codea` directory in Dropbox.
 
-Return to the Codea main screen, and once again tap the arrow at the upper left.  Again tap the "Assets" icon, and select the Dropbox menu.  You'll see a little 'sync' button at the upper right of the Dropbox pop-up.  Tap it.  This will synchronize the contents of the Apps/Codea dropbox folder with Codea's internal memory.  You'll have to do this every time you move something in and out of Codea's dropbox memory.
+Return to the Codea main screen, and once again tap the arrow at the upper left.  Again tap the "Assets" icon, and select the Dropbox menu.  You'll see a little `sync` button at the upper right of the Dropbox pop-up.  Tap it.  This will synchronize the contents of the `Apps/Codea` dropbox folder with Codea's internal memory.  You'll have to do this every time you move something in and out of Codea's dropbox memory.
 
-Return again to the Codea main screen.  Push and hold the "Add New Project" button (the one with the big plus sign). Select the menu item that says "Paste into Project".  The PDP8 emulator code that was on the clipboard should be imported into this project.  Give it a name like PDP8 `<grin>`. 
+Return again to the Codea main screen.  Push and hold the `Add New Project` button (the one with the big plus sign). Select the menu item that says "Paste into Project".  The PDP8 emulator code that was on the clipboard should be imported into this project.  Give it a name like PDP8 `<grin>`. 
 	
-Now run the emulator.  It should pop right up and the basic paper tapes should be in the selves at the left.  
+Now run the emulator.  It should pop right up and the basic paper tapes should be in the selves at the left.
 
-Toggle in the Rim loader (see below), load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal.  Have fun! 
+#### Configuring the emulator for your iPad
+
+After starting the emulator tap the `RUN` button on the front panel.  You should see the lights blinking furiously.  The PDP8 is rapidly executing the zeros in memory.  (`0000` is an `AND` instruction).  Look at the lower right and you'll see a little statistics panel with three numbers in it.  
+
+ * `fps`: Frames per second.  This is the number of times the screen is being redrawn per second.  Codea tries to redraw the screen 60 times per second.  If that number is much less than 60 it means that the emulator is taking longer than one sixtieth of a second to execute a batch of instruction.
+ * `ips`: Instructions per second.  This number, on an iPad air (circa 2015) should be about 23,000.  On slower iPads it could be 5,000 or less.
+ * `ipf`: Instructions per frame.  This is the batch size.  It is the number of instructions that are executed between drawing frames.  You can change this number by tapping the `Speed` button just to the left of the numbers.  It defaults to 401.  The bigger the batch, the faster the emulator runs, but the slower the screen updates.
+
+If `ips` is less than 23,000 you may have to configure some of the timing parameters in the source code.  Stop the emulator by tapping the `QuitX2` button twice in rapid succession.  You should be returned to the Codea editor.
+
+Tap the `Main` tab at the top of the screen.  You should see the code for the Main Module which begins with six constants:
+
+ * `VERSION`: This is the version number of the code.  It prints at the lower left of the screen when the emulator is running.
+ * `ION_DELAY`: This is the number of instructions to wait after an ION instruction before turning the interrupts on.  In a real PDP8 this number is 1.  But for slow iPads it's better to make this number to 30 or more in order to sidestep bugs in old DEC software; particularly FOCAL.  (See "FOCAL" below).
+ * `AUTO_CR_DELAY`: This is the number of seconds (usually a fraction) that the tape reader will pause after reading a `CR` (Carriage Return, Octal 215).  This delay is only imposed when the reader is in `Auto` mode, and the `FAST` toggle is not set.  For slow iPads it's best to set this number to `0.5` or larger, to allow old DEC programs, particularly FOCAL, to have time to process the end of a line.
+ * `FAST_TTY_DELAY`: This is the number of seconds (usually a small fraction) that the TTY will delay between characters when the `TTY FAST` toggle is set.  This number defaults to zero so that the TTY will print as fast as possible in fast mode.  
+ * `FAST_READER_DELAY`: This is the number of seconds (usually a very small fraction) that the tape reader delays between characters when the `FAST` toggle is set.  For realism it defaults to `1/300` to get close to 300 characters per second; the actual speed of the DEC high speed reader.  Remember that the reader can only read as fast as the PDP8 requests characters, so on slow iPads, the reader may not get up to 300cps.  On fast iPads you can set this number to zero, and watch the tape reader really scream!
+ * `FAST_PUNCH_DELAY`: This is the number of seconds (usually a small fraction) that the punch delays between characters when the `FAST` toggle is set.  This number defaults to `1/50` for realism, since the DEC high speed punch operated at 50cps.  Set this number to zero to punch as fast as possible.  
+ 
+### Loading Standard Programs.
+When you start the emulator, the 4K of "core" is set to all zeroes.  To load any of the standard paper tapes in the shelf at the left you'll have to toggle in the Rim loader (see below).  Then you can load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal. 
+
+It would be a good idea to save a core image of the rim loader, the bin loader, the assembler, the editor, and FOCAL.  You can do this by tapping the `Save` button below the tape shelves.  See the instructions below.  An, in general, read the whole document (RTFM!).  And, of course, Have fun! 
 
 ### The Front Panel
 The lights on the front panel are also buttons.  You can tap them to change their state.  You can also slide your finger along the lights to change them as a group.
@@ -87,12 +109,12 @@ At the bottom right you'll see three numbers in a white rectangle.  This is the 
  * `Speed Button` You can control the value of `ipf` by tapping on the `Speed` button to the left of the statistics frame.  Each tap causes the `ipf` to cycle through a few useful values which are [1,11,101,401].  The more instructions per frame, the higher the speed of the processor, but the fewer redraws per second.  The values 101,and 401 provide reasonable performance for Focal, the Editor, and the Assembler.
 
 ###IO Speed.
-There are three buttons that control the speed of the IO devices.  There is a "FAST" button next to the Reader, another next to the Punch, and a "TTY FAST" button below the control panel.  If these are not pushed, then the speed of the corresponding devices is 10cps.  In fast mode they go much faster.  The speed should be close to 100cps for the reader, 50cps for the punch, and 100+cps for the TTY.  
+There are three buttons that control the speed of the IO devices.  There is a `FAST` toggle next to the Reader, another next to the Punch, and a `TTY FAST` toggle below the control panel.  If these are not set, then the speed of the corresponding devices is 10cps.  In fast mode they go much faster.  (See the "Configuring" section above).  
 
 Be careful.  As with the original PDP8, a fast reader can quickly outpace a slow TTY or Punch.  This won't be a problem with the regular PDP8 software, like the editor or the assembler.  However, you're own programs will have to keep it in mind.
 
 ###Auto Reader
-If you enable the AUTO button next to the reader, it couples the reader to the keyboard, allowing you to enter a paper tape as though it were being typed from the keyboard.  In many cases the Reader should be slow in order to avoid overrunning the TTY.
+If you enable the AUTO button next to the reader, it couples the reader to the keyboard, allowing you to enter a paper tape as though it were being typed from the keyboard.  Make sure the `FAST` toggle is not set!  In `AUTO` mode the reader does not wait for the CPU to read characters, so the reader should be slow in order to avoid overrunning the TTY.
 
 ###Listings.
 There are two buttons below the control panel.  "Junk Listing" simply erases the TTY.  Careful, there's no way to get it back.
@@ -106,8 +128,7 @@ More documentation is coming...
 
 Yes, it's test driven.  I wrote a little unit testing utility that makes it pretty easy.   It's far from perfect, but it's workable.
 
-The GUI stuff is not test driven, but the processor and bit manipulations are.  I test the GUI stuff in a very tight loop, in the TDD style, but there's no good way
-to write unit tests against the Codea platform.  That doesn't matter too much since the edit/test loop is so fast when working with the GUI.
+The GUI stuff is not test driven, but the processor and bit manipulations are.  I test the GUI stuff in a very tight loop, in the TDD style, but there's no good way to write unit tests against the Codea platform.  That doesn't matter too much since the edit/test loop is so fast when working with the GUI.
 
 Refactoring in this environment (iPad screen, and bluetooth keyboard) is not ideal.  There's no refactoring browser, 
 nor any really helpful tools.  Even selecting code on the screen is a pain.  Fingers are nowhere near as precise as a mouse.
