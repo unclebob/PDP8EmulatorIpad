@@ -6,7 +6,7 @@
 ---- Test on other ipads.
 ---- Check different screen resolutions.
 
-VERSION="201503140936"
+VERSION="201503181006"
 ION_DELAY=3 -- # of instructions after ION to wait before turning interrupts on.
            -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = 0 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -322,10 +322,12 @@ end
 function loadRackFromDropbox()
    local tapes = assetList("Dropbox")
    for i=1,#tapes do
-       local shelf = findEmptyShelf()
-       shelf.type = Shelf.TAPE
-       shelf.name = tapes[i]
-       shelf.io = DropboxReader()
+       if tapes[i] ~= "listing" then
+           local shelf = findEmptyShelf()
+           shelf.type = Shelf.TAPE
+           shelf.name = tapes[i]
+           shelf.io = DropboxReader()
+       end
    end
 end
 
@@ -1545,7 +1547,7 @@ function TapeReader:touched(t)
 end
 
 function TapeReader:hit()
-   if pdp8.selectedShelf == nil then
+   if pdp8.selectedShelf == nil or pdp8.selectedShelf.type ~= Shelf.TAPE then
        self.buffer = ""
    else
        local ptText = pdp8.selectedShelf.io:read(pdp8.selectedShelf.name)
