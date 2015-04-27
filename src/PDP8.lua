@@ -6,10 +6,10 @@
 ---- Test on other ipads.
 ---- Check different screen resolutions.
 
-VERSION="201503181006"
-ION_DELAY=3 -- # of instructions after ION to wait before turning interrupts on.
+VERSION="201504261420"
+ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
            -- Set to 30 for Slow iPads to fix Focal freeze.
-AUTO_CR_DELAY = 0 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
+AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
 FAST_TTY_DELAY = 0 -- As fast as possible
 FAST_READER_DELAY = 1/300 -- 300 characters per second.
 FAST_PUNCH_DELAY = 1/50 -- 50 characters per second
@@ -287,7 +287,7 @@ end
 
 function save()
    local name = "Core."..os.clock()
-   local shelf = findEmptyShelf()
+   local shelf = findEmptyBottomShelf()
    shelf.type = Shelf.CORE
    shelf.io = ProjectIO("cr_")
    shelf.name = name
@@ -323,7 +323,7 @@ function loadRackFromDropbox()
    local tapes = assetList("Dropbox")
    for i=1,#tapes do
        if tapes[i] ~= "listing" then
-           local shelf = findEmptyShelf()
+           local shelf = findEmptyTopShelf()
            shelf.type = Shelf.TAPE
            shelf.name = tapes[i]
            shelf.io = DropboxReader()
@@ -340,9 +340,9 @@ function PDP8:loadRackFromProject()
            if self.racks[rackNo] == nil then
                self.racks[rackNo] = Rack(0, 100, self.midFrame-self.leftFrame)
            end
-           loadShelf(self.racks[rackNo]:findEmptyShelf(), name)
+           self:loadShelf(self.racks[rackNo], name)
        else
-           loadShelf(findEmptyShelf(), files[i])
+           self:loadShelf(self.currentRack, files[i])
        end
    end
    self.currentRackNumber = 1
@@ -357,30 +357,46 @@ function extractRackFromFileName(fileName)
    return rackNumber+0,name
 end
 
-function loadShelf(shelf, fileName)
+function PDP8:loadShelf(rack, fileName)
+   local shelf = nil
    local prefix = fileName:sub(1,3)
    local name = fileName:sub(4,-1)
    if prefix=="pt_" then
+       shelf=rack:findEmptyTopShelf()
        shelf.type = Shelf.TAPE
        shelf.io = ProjectIO(prefix)
        shelf.name = name
    elseif prefix=="cr_" then
+       shelf=findEmptyBottomShelf()
        shelf.type = Shelf.CORE
        shelf.io = ProjectIO(prefix)
        shelf.name = name
    end
 end
 
-function findEmptyShelf()
-   local shelf = pdp8.currentRack:findEmptyShelf()
+function findEmptyTopShelf()
+   local shelf = pdp8.currentRack:findEmptyTopShelf()
    if shelf == nil then
-       pdp8.currentRackNumber = #pdp8.racks+1
-       pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, self.midFrame-self.leftFrame)
-       pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
-       Rack.drawCount = 1
-       shelf = pdp8.currentRack:findEmptyShelf()
+       addNewRack()
+       shelf = pdp8.currentRack:findEmptyTopShelf()
    end
    return shelf
+end
+
+function findEmptyBottomShelf()
+   local shelf = pdp8.currentRack:findEmptyBottomShelf()
+   if shelf == nil then
+       addNewRack()
+       shelf = pdp8.currentRack:findEmptyBottomShelf()
+   end
+   return shelf
+end
+
+function addNewRack()
+   pdp8.currentRackNumber = #pdp8.racks+1
+   pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, self.midFrame-self.leftFrame)
+   pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
+   Rack.drawCount = 1
 end
 
 function nextRack()
@@ -762,9 +778,9 @@ function ControlPanel:draw()
 end
 
 function ControlPanel:checkDevs()
-   local ttyDelay =  .1
-   local punchDelay = .1
-   local readerDelay = .1 + self.autoReaderDelay
+   local ttyDelay =  .08
+   local punchDelay = .08
+   local readerDelay = .08 + self.autoReaderDelay
 
    if pdp8.ttyFast == 1 then
        ttyDelay = FAST_TTY_DELAY
@@ -869,13 +885,13 @@ function Device:init(processor)
 end
 
 function Device:io(flags)
-   if Processor.mask(1, flags) > 0 and self.ready == 1 then
+   if flags&1 > 0 and self.ready == 1 then
        self:skipIfReady()
    end
-   if Processor.mask(2, flags) > 0 then
+   if flags&2 > 0 then
        self:clearFlag()
    end
-   if Processor.mask(4, flags) > 0 then       
+   if flags&4 > 0 then       
        self:operate()
    end
 end
@@ -903,7 +919,7 @@ function Keyboard:clearFlag()
 end
 
 function Keyboard:operate()
-   self.processor.ac = Processor.ior(self.processor.ac, self.buffer)
+   self.processor.ac = self.processor.ac | self.buffer
 end
 
 TapePunch = class(Teleprinter)
@@ -911,13 +927,13 @@ TapePunch = class(Teleprinter)
 PaperTapeReader = class(Device)
 
 function PaperTapeReader:io(flags)
-   if Processor.mask(1, flags) > 0 and self.ready == 1 then
+   if flags&1 > 0 and self.ready == 1 then
        self:skipIfReady()
    end
-   if Processor.mask(2, flags) > 0 then
-       self.processor.ac = Processor.ior(self.processor.ac, self.buffer)
+   if flags&2 > 0 then
+       self.processor.ac = self.processor.ac | self.buffer
    end
-   if Processor.mask(4, flags) > 0 then       
+   if flags&4 > 0 then       
        self.ready = 0
    end
 end
@@ -1018,14 +1034,14 @@ end
 function PaperTape:drawByte(x, y, byte)
    for i=0,4,1 do
        local bitx = x+(i*(self.holeSize+self.holeGap))
-       local bit = Processor.mask(2^(7-i), byte)
+       local bit = (2^(7-i) & byte)
        self:drawHole(bitx, y, bit)
    end
    fill(0,0,0,255)
    ellipse(x+(5*(self.holeSize+self.holeGap)+self.sprocketMargin-self.holeGap/2), y, self.sprocketHoleSize)
    for i=5,7,1 do
        local bitx = x+(i*(self.holeSize+self.holeGap)+self.sprocketHoleWidth)
-       local bit = Processor.mask(2^(7-i), byte)
+       local bit = 2^(7-i) & byte
        self:drawHole(bitx, y, bit)
    end
 end
@@ -1100,7 +1116,7 @@ function Punch:drawStack()
 end
 
 function Punch:punch(byte)
-   byte = Processor.mask(255, byte)
+   byte = byte&0xff
    self.buffer = self.buffer..string.char(byte)
    self.drawCount = 1
    sound("Game Sounds One:Pistol")
@@ -1117,7 +1133,7 @@ function Punch:hit()
    if (self.buffer == nil or #self.buffer == 0) then
        sound("Game Sounds One:Wrong")
    else
-       local shelf = findEmptyShelf()
+       local shelf = findEmptyTopShelf()
        shelf.name = "Tape:"..os.clock()
        shelf.type = Shelf.TAPE
        shelf.io = ProjectIO("pt_")
@@ -1176,13 +1192,28 @@ function Rack:touched(touch)
    end
 end
 
-function Rack:findEmptyShelf() 
-   for shelfNo, shelf in pairs(self.shelves) do
-       if (shelf.type == Shelf.EMPTY) then
-           return shelf
+function Rack:findEmptyTopShelf()
+   local maxFreeShelf = -1
+   local topFreeShelf = nil
+   for _,shelf in ipairs(self.shelves) do
+       if (shelf.type == Shelf.EMPTY) and (shelf.y > maxFreeShelf) then
+           topFreeShelf = shelf
+           maxFreeShelf = shelf.y
        end
    end
-   return nil
+   return topFreeShelf
+end
+
+function Rack:findEmptyBottomShelf()
+   local minFreeShelf = math.maxinteger
+   local bottomFreeShelf = nil
+   for _,shelf in ipairs(self.shelves) do
+       if (shelf.type == Shelf.EMPTY) and (shelf.y < minFreeShelf) then
+           bottomFreeShelf = shelf
+           minFreeShelf = shelf.y
+       end
+   end
+   return bottomFreeShelf
 end
 
 --# RackControls
@@ -1265,10 +1296,10 @@ function Register:value()
 end
 
 function Register:setValue(v)
-   self.digits[1]:setValue(Processor.mask(7, Processor.shiftRight(v, 9)))
-   self.digits[2]:setValue(Processor.mask(7, Processor.shiftRight(v, 6)))
-   self.digits[3]:setValue(Processor.mask(7, Processor.shiftRight(v, 3)))
-   self.digits[4]:setValue(Processor.mask(7, v))
+   self.digits[1]:setValue(7 & (v>>9))
+   self.digits[2]:setValue(7 & (v>>6))
+   self.digits[3]:setValue(7 & (v>>3))
+   self.digits[4]:setValue(7 & v)
 end
 
 function Register:widthOfBits()
@@ -1560,9 +1591,9 @@ function TapeReader:ptToBinary(s)
    local len = s:len()
    local buffer = ""
    for pos=1,len,4 do
-       local char = Processor.mask(7, s:byte(pos))*64
-       + Processor.mask(7, s:byte(pos+1))*8
-       + Processor.mask(7, s:byte(pos+2))
+       local char = ((7 & s:byte(pos))<<6)
+       + ((7 & s:byte(pos+1))<<3)
+       + (7 & s:byte(pos+2))
        buffer = buffer..string.char(char)
    end
    return buffer
@@ -1645,46 +1676,11 @@ function Processor:init(switchRegister, run)
 end
 
 function Processor:store(ma, mb)
-   self.memory[ma]=mb%4096
+   self.memory[ma]=mb&0xFFF
 end
 
 function Processor:get(ma)
    return self.memory[ma]
-end
-
-function Processor.mask(a,b)
-   local result = 0
-   for i=1,12 do
-       result = result / 2
-       if a%2 ~= 0 and b%2 ~= 0 then
-           result = result + 2048
-       end
-       a = math.floor(a/2)
-       b = math.floor(b/2)
-   end
-   return result
-end
-
-function Processor.ior(a,b)
-   local result = 0
-   for i=1,12 do
-       result = result / 2
-       if a%2 ~= 0 or b%2 ~= 0 then
-           result = result + 2048
-       end
-       a = math.floor(a/2)
-       b = math.floor(b/2)
-   end
-   return result
-end
-
-function Processor.shiftRight(value, bits)
-   local divisor = 2^bits
-   return math.floor(value/divisor)
-end
-
-function Processor.shiftLeft(value, bits)
-   return (value*2^bits) % 4096
 end
 
 function Processor:step()
@@ -1706,7 +1702,7 @@ end
 function Processor:executeInstructionAtPc() 
    local instruction = self.memory[self.pc] 
 
-   local opCode = Processor.shiftRight(instruction, 9)
+   local opCode = instruction>>9
    if (opCode <=5) then
        self:mriInstruction(opCode, instruction)
    elseif (opCode == 7) then
@@ -1715,25 +1711,25 @@ function Processor:executeInstructionAtPc()
        self:iot(instruction)
    end
 
-   self.pc = (self.pc+1)%4096
+   self.pc = (self.pc+1)&0xfff
 end
 
 function Processor:mriInstruction(opCode, instruction)
    self.ma = self:getEffectiveAddress(instruction)
    if (opCode == 0) then -- AND
        self.mb = self.memory[self.ma]
-       self.ac = Processor.mask(self.ac, self.mb)
+       self.ac = self.ac & self.mb
    elseif (opCode == 1) then -- TAD
        self.mb = self.memory[self.ma]
        self:addToAcLink(self.mb)
    elseif (opCode == 2) then -- ISZ
-       self.mb = (self.memory[self.ma] + 1)%4096
+       self.mb = (self.memory[self.ma] + 1)&0xfff
        self:store(self.ma, self.mb)
        if (self.mb == 0) then
-           self.pc = self.pc + 1
+           self.pc = (self.pc + 1)&0xfff
        end
    elseif (opCode == 4) then -- JMS
-       self.mb = self.pc + 1
+       self.mb = (self.pc + 1)&0xfff
        self:store(self.ma, self.mb)
        self.pc = self.ma -- it will be incremented by step
    elseif (opCode == 3) then -- DCA
@@ -1741,105 +1737,102 @@ function Processor:mriInstruction(opCode, instruction)
        self:store(self.ma, self.mb)
        self.ac = 0
    elseif (opCode == 5) then -- JMP
-       self.pc = self.ma-1
+       self.pc = (self.ma-1)&0xfff
    end
 end
 
 function Processor:addToAcLink(m)
    self.ac = (self.ac + m)
    if (self.ac > 4095) then
-       self.ac = self.ac % 4096
-       self.link = (self.link + 1)%2
+       self.ac = self.ac & 0xfff
+       self.link = (self.link + 1)&1
    end
 end
 
 function Processor:operateMicroInstruction(instruction)
-   if (Processor.mask(instruction, Processor.octal(0400)) == 0) then
+   if (instruction&0x100 == 0) then
        self:group1MicroInstructions(instruction)
-   elseif (Processor.mask(instruction, Processor.octal(401)) == Processor.octal(0400)) then
+   elseif (instruction & 0x101) == 0x100 then
        self:group2Skips(instruction)
    end
 end
 
 function Processor:group1MicroInstructions(instruction)
    --seq1
-   if (Processor.mask(instruction, 2^7) > 0) then -- CLA
+   if (instruction&0x80 > 0) then -- CLA
        self.ac = 0
    end
 
-   if (Processor.mask(instruction, 2^6) > 0) then -- CLL
+   if (instruction&0x40 > 0) then -- CLL
        self.link = 0
    end
 
    --seq2
-   if (Processor.mask(instruction, 2^5) > 0) then -- CMA
-       self.ac = (4096 - self.ac)-1
+   if (instruction&0x20 > 0) then -- CMA
+       self.ac = self.ac~0xfff
    end
 
-   if (Processor.mask(instruction, 2^4) > 0) then -- CLL
+   if (instruction&0x10 > 0) then -- CLL
        self.link = (self.link > 0) and 0 or 1
    end
 
    --seq3
 
-   if (Processor.mask(instruction, 1) > 0) then  -- IAC
+   if (instruction&1 > 0) then  -- IAC
        self:addToAcLink(1)
    end
 
    --seq4
 
-   if (Processor.mask(instruction, 2^3) > 0) then -- RAR
+   if (instruction&8 > 0) then -- RAR
        self:rar()
-       if (Processor.mask(instruction, 2) > 0) then -- RTR
+       if (instruction&2 > 0) then -- RTR
            self:rar()
        end
    end
 
-   if (Processor.mask(instruction, 2^2) > 0) then -- RAL
+   if (instruction&4 > 0) then -- RAL
        self:ral()
-       if (Processor.mask(instruction, 2) > 0) then -- RTL
+       if (instruction&2 > 0) then -- RTL
            self:ral()
        end
    end
 end
 
 function Processor:group2Skips(instruction) 
-   local sma = (Processor.mask(64, instruction) > 0) and (Processor.mask(2048, self.ac) > 0)
-   local sza = (Processor.mask(32, instruction) > 0) and self.ac == 0
-   local snl = (Processor.mask(16, instruction) > 0) and self.link > 0
+   local sma = (instruction&0x40 > 0) and (self.ac&0x800 > 0)
+   local sza = ((0x20 & instruction) > 0) and self.ac == 0
+   local snl = (instruction&0x10 > 0) and self.link > 0
    local skip = sma or sza or snl
-   if (Processor.mask(8, instruction) > 0) then
+   if (instruction&8 > 0) then
        skip = not skip
    end
-   self.pc = skip and self.pc + 1 or self.pc
+   self.pc = skip and ((self.pc + 1)&0xfff) or self.pc
 
-   if (Processor.mask(128, instruction) > 0) then
+   if (instruction&0x80 > 0) then
        self.ac = 0
    end
 
-   if (Processor.mask(4, instruction) > 0) then -- OSR
-       local cSR = (4096-self.sr:value()) - 1
-       local cAc = (4096-self.ac)-1
-       local cOsr = Processor.mask(cAc, cSR)
-       self.ac = (4096 - cOsr) - 1
+   if (instruction&4> 0) then -- OSR
+      self.ac = self.ac|self.sr:value()
    end
 
-   if (Processor.mask(2, instruction) > 0) then -- HLT
+   if (instruction&2 > 0) then -- HLT
        self.run.bit:setValue(0);
    end
 end
 
 function Processor:rar()
    local l = self.link
-   self.link = Processor.mask(self.ac, 1)
-   self.ac = Processor.shiftRight(self.ac, 1)
+   self.link = self.ac&1
+   self.ac = self.ac >> 1
    self.ac = self.ac + 2048 * l
 end
 
 function Processor:ral()
    local l = self.link
    self.link = (self.ac >= 2048) and 1 or 0
-   self.ac = Processor.shiftLeft(self.ac, 1) + l
+   self.ac = ((self.ac<<1) + l) & 0xfff
 end
 
 function Processor:getEffectiveAddress(instruction)
@@ -1847,36 +1840,35 @@ function Processor:getEffectiveAddress(instruction)
    if (Processor.isCurrentPage(instruction)) then 
        page = Processor.getPage(self.pc)
    end
-   local addr = (page + Processor.mask(instruction, 127))%4096
+   local addr = (page + (instruction&0x7f))&0xfff
    if (Processor.isIndirect(instruction)) then
        if (addr >= 8 and addr <= 15) then -- autoindex
-           self.memory[addr] = self.memory[addr] + 1
+           self.memory[addr] = (self.memory[addr] + 1)&0xfff
        end
        addr = self.memory[addr]
    end
-   return addr%4096
+   return addr&0xfff
 end
 
 function Processor.getPage(pc)
-   return Processor.mask(pc, 4095-127)
+   return pc&0xf80
 end
 
 function Processor.getOpCode(instruction)
-   return Processor.shiftRight(instruction, 9)
+   return instruction>>9
 end
 
 function Processor.isIndirect(instruction)
-   return Processor.shiftRight(instruction, 8)%2>0
+   return instruction&0x100 > 0
 end
 
 function Processor.isCurrentPage(instruction)
-   return Processor.shiftRight(instruction,7)%2>0
+   return instruction&0x80>0
 end
 
 function Processor:iot(instruction)
-   local device = Processor.mask(Processor.octal(770), instruction)
-   device = Processor.shiftRight(device, 3)
-   local command = Processor.mask(7, instruction)
+   local device = (instruction&0x1f8)>>3
+   local command = instruction&7
    if (device == 0) then
        self:handleInterruptInstruction(command)
    else
@@ -1915,9 +1907,9 @@ end
 Ascii = class()
 
 function setAscii(code, char)
-   code = Processor.mask(Processor.octal(177), Processor.octal(code))
+   code = (0x7f & Processor.octal(code))
    ASCII[code] = char
-   ASCII[code + Processor.octal(200)] = char
+   ASCII[code + 0x80] = char
 end
 
 function Ascii:init()
@@ -2147,7 +2139,7 @@ function Teletype:type(c)
    if not self.scrolling then
        self.drawCount = 1
    end
-   c = Processor.mask(self.charMask, c)    
+   c = self.charMask & c    
    self.charCount = self.charCount + 1
    self.chars[self.charCount] = c
 
@@ -2184,21 +2176,6 @@ end
 
 --# ProcessorTest
 function Processor:test(t)
-   t:assertEquals(0, Processor.shiftRight(0,0), "shiftRight(0,0)")
-   t:assertEquals(1, Processor.shiftRight(2,1), "shiftRight(2,1)")
-   t:assertEquals(7, Processor.shiftRight(7*512, 9), "shiftRight(7*512, 9)")
-   t:assertEquals(0, Processor.shiftRight(4095, 12), "shiftRight(4095,12)")
-
-   t:assertEquals(5*512, Processor.shiftLeft(5,9), "ShiftLeft(5,9)")
-
-   t:assertEquals(2, Processor.mask(7,2), "mask(7,2)")
-   t:assertEquals(5, Processor.mask(4093, 7), "mask(4093,7)")
-   t:assertEquals(128, Processor.mask(4095, 128), "mask(4095,128)")
-   t:assertEquals(256, Processor.mask(4095, 256), "mask(4095,256)")
-
-   t:octalEquals(7777, Processor.ior(Processor.octal(5555), Processor.octal(2222)), "ior1")
-   t:octalEquals(7777, Processor.ior(Processor.octal(7700), Processor.octal(777)), "ior2")
-
    t:assertEquals(256, Processor.getPage(257), "getPage(257)")
    t:assertEquals(512+256, Processor.getPage(512+256+127), "getPage(big)")
 
