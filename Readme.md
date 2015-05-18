@@ -37,6 +37,17 @@ Tap the `Main` tab at the top of the screen.  You should see the code for the Ma
  * `FAST_TTY_DELAY`: This is the number of seconds (usually a small fraction) that the TTY will delay between characters when the `TTY FAST` toggle is set.  This number defaults to zero so that the TTY will print as fast as possible in fast mode.  
  * `FAST_READER_DELAY`: This is the number of seconds (usually a very small fraction) that the tape reader delays between characters when the `FAST` toggle is set.  For realism it defaults to `1/300` to get close to 300 characters per second; the actual speed of the DEC high speed reader.  Remember that the reader can only read as fast as the PDP8 requests characters, so on slow iPads, the reader may not get up to 300cps.  On fast iPads you can set this number to zero, and watch the tape reader really scream!
  * `FAST_PUNCH_DELAY`: This is the number of seconds (usually a small fraction) that the punch delays between characters when the `FAST` toggle is set.  This number defaults to `1/50` for realism, since the DEC high speed punch operated at 50cps.  Set this number to zero to punch as fast as possible.  
+
+### Key Maps.
+I use the Kensington KeyFolio Pro 2 bluetooth keyboard with my emulator.  The key mapping works
+tolerably well, but there are a few exceptions.
+
+ * Type Delete for CR
+ * Type enter for LF
+ * Type Option-underscore for rubout
+ * Type Option-C for Ctrl-C
+ * Type Option-L for Ctrl-L
+ * Type Option-G for Ctrl-G
  
 ### Loading Standard Programs.
 When you start the emulator, the 4K of "core" is set to all zeroes.  To load any of the standard paper tapes in the shelf at the left you'll have to toggle in the Rim loader (see below).  Then you can load in the Bin loader, and then load the editor or the assembler.  Or use the RIM loader to load in Focal. 

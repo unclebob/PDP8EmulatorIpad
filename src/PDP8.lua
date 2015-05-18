@@ -6,7 +6,7 @@
 ---- Test on other ipads.
 ---- Check different screen resolutions.
 
-VERSION="201504261420"
+VERSION="201505181330"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
            -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -1113,6 +1113,11 @@ function Punch:drawStack()
    noStroke()
    fill(221, 207, 10, 255)
    rect(self.left+5, self.bottom+1, self.width-10, stackHeight)
+   if self.buffer:len() > 100 then
+       fill(255)
+       fontSize(15)
+       text(""..self.buffer:len(), self.left+(self.width/2), self.bottom+10)
+   end
 end
 
 function Punch:punch(byte)
@@ -1226,7 +1231,7 @@ function RackControls:init(x, y, width)
    self.prevButton = MomentaryButton(x+5, y, "Prev", prevRack)
    self.loadButton = MomentaryButton(x+(width/3)-self.prevButton.width, y, "Load", load)
    self.saveButton = MomentaryButton(x+(2*width/3), y, "Save", save)
-   self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack)    
+   self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack) 
 end
 
 function RackControls:draw()
@@ -1559,6 +1564,11 @@ function TapeReader:drawStack()
    noStroke()
    fill(221, 207, 10, 255)
    rect(self.left+5, self.bottom+1, self.width-10, stackHeight)
+   if self.buffer:len() > 100 then
+       fill(255)
+       fontSize(15)
+       text(""..self.buffer:len(), self.left+(self.width/2), self.bottom+10)
+   end
 end
 
 function TapeReader:read()
@@ -2509,3 +2519,10 @@ function RimPanel:getText()
    "7774  3376\n"..
    "7775  5356"
 end
+
+
+--
+Robert Martin
+@unclebobmartin
+847-922-0563
+Sent from my iPad
