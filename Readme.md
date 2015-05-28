@@ -44,7 +44,7 @@ tolerably well, but there are a few exceptions.
 
  * Type Delete for CR
  * Type enter for LF
- * Type Option-underscore for rubout
+ * Type Option-backslash for rubout
  * Type Option-C for Ctrl-C
  * Type Option-L for Ctrl-L
  * Type Option-G for Ctrl-G
