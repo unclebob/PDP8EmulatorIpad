@@ -6,7 +6,7 @@
 ---- Test on other ipads.
 ---- Check different screen resolutions.
 
-VERSION="201505181330"
+VERSION="201505291550"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
            -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -232,6 +232,8 @@ function sendToTTY(key)
        code = Processor.octal(203)
    elseif (key:byte(1) == nil) then -- CTRL-M CR
        code = Processor.octal(215) 
+   elseif (key == "∂") then -- CTRL-D EOT
+       code = Processor.octal(204)
    else
        key = string.upper(key)
        code =128+(key:byte(1))
@@ -1231,7 +1233,7 @@ function RackControls:init(x, y, width)
    self.prevButton = MomentaryButton(x+5, y, "Prev", prevRack)
    self.loadButton = MomentaryButton(x+(width/3)-self.prevButton.width, y, "Load", load)
    self.saveButton = MomentaryButton(x+(2*width/3), y, "Save", save)
-   self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack) 
+   self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack)    
 end
 
 function RackControls:draw()
@@ -2020,6 +2022,7 @@ function Teletype:init(x,y,w,h)
    self.CR = Processor.octal(15)
    self.BEL = Processor.octal(07)
    self.FF = Processor.octal(14)
+   self.RUBOUT = Processor.octal(177)
    self.scrollBottom = 1
    self.scrollStart = 0
    self.scrolling = false
@@ -2037,6 +2040,8 @@ function Teletype:clear()
    self.lastLineDrawn = 0
    self.lastCharDrawn = 0
    self.drawCount = 5
+   self.paperColor = color(255, 227, 0, 255)
+
 end
 
 function Teletype:draw()
@@ -2050,7 +2055,7 @@ end
 function Teletype:drawPaper()
    local justDrawOneChar = (self.line == self.lastLineDrawn) and (not self.scrolling)
    if (not justDrawOneChar) or self.drawCount > 1 then
-       fill(255, 227, 0, 255)
+       fill(self.paperColor)
        rect(self.x, self.y, self.width, self.height)
    end
 
@@ -2072,6 +2077,19 @@ function Teletype:drawPaper()
            self:drawLine(lineToDraw, justDrawOneChar)
        end
        self.lastLineDrawn = self.line
+   end
+   self:drawCursor()
+end
+
+function Teletype:drawCursor() 
+   local cursx = self.charPos*self.cw+self.x+self.margin
+   local cursy = self.y
+   fill(self.paperColor)
+   noStroke()
+   rect(self.x+1, self.y+1, self.width-2, self.margin-1)
+   if (not self.scrolling) then
+       fill(255,0,0,255)
+       text("^", cursx, cursy)
    end
 end
 
@@ -2100,7 +2118,8 @@ function Teletype:drawChar(charIndex, justDrawOneChar)
    local char = self.chars[charIndex]
    if (char == self.CR) then
        self.screenx = 0
-   elseif (char == self.LF) or (char == self.BEL) or (char == self.FF) or (char == 0) then
+   elseif (char == self.LF) or (char == self.BEL) or (char == self.RUBOUT) or
+       (char == self.FF) or (char == 0) then
        -- nothing to do.
    else
        if (not justDrawOneChar) or (charIndex > self.lastCharDrawn) then
@@ -2166,7 +2185,7 @@ function Teletype:type(c)
        self:startNextLine()
        self.charPos = 0
        sound("Game Sounds One:Assembly 5")
-   elseif(c == 0) then
+   elseif(c == 0) or (c == self.RUBOUT) then
        -- Nothing to do.
    else
        self.charPos = self.charPos + 1
@@ -2519,10 +2538,3 @@ function RimPanel:getText()
    "7774  3376\n"..
    "7775  5356"
 end
-
-
---
-Robert Martin
-@unclebobmartin
-847-922-0563
-Sent from my iPad
