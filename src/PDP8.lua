@@ -396,7 +396,7 @@ end
 
 function addNewRack()
    pdp8.currentRackNumber = #pdp8.racks+1
-   pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, self.midFrame-self.leftFrame)
+   pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, pdp8.midFrame-pdp8.leftFrame)
    pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
    Rack.drawCount = 1
 end
