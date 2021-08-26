@@ -3,10 +3,9 @@
 -- PDP8
 
 -- To Do:
----- Test on other ipads.
----- Check different screen resolutions.
+-- Add buttons to allow positioning tape on read head.
 
-VERSION="202108231731"
+VERSION="202108260701"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -1517,9 +1516,9 @@ function StatsPanel:touched(touch)
     self.speed:touched(touch)
 end
 
-speedSelections = {1,11,101,401,1001,9999}
+speedSelections = {1,11,101,401,1001,3001}
 speedSelection = 6
-cyclesPerFrame = 9999
+cyclesPerFrame = speedSelections[speedSelection]
 
 function cycleSpeed()
     speedSelection=speedSelection+1

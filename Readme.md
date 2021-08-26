@@ -1,5 +1,5 @@
 
-#PDP-8 Emulator for iPad
+# PDP-8 Emulator for iPad
 
 This is my PDP8 Emulator for the iPad.  It's written in Lua using the Codea platform.
 All the resources it uses are standard with Codea, or easily accessible, so you shouldn't have any difficulty running it as is.  
@@ -60,8 +60,15 @@ Now restart the emulator and tap the lights again.  You should hear a pleasant l
 After starting the emulator tap the `RUN` button on the front panel.  You should see the lights blinking furiously.  The PDP8 is rapidly executing the zeros in memory.  (`0000` is an `AND` instruction).  Look at the lower right and you'll see a little statistics panel with three numbers in it.  
 
  * `fps`: Frames per second.  This is the number of times the screen is being redrawn per second.  Codea tries to redraw the screen 60 times per second.  If that number is much less than 60 it means that the emulator is taking longer than one sixtieth of a second to execute a batch of instruction.
- * `ips`: Instructions per second.  This number, on an iPad pro (circa 2019) should be something above 500,000.  On slower iPads it could be significantly less.
+ * `ips`: Instructions per second.  This number, on an iPad pro (circa 2019) should be something above 100,000.  On slower iPads it could be significantly less.
  * `ipf`: Instructions per frame.  This is the batch size.  It is the number of instructions that are executed between drawing frames.  You can change this number by tapping the `Speed` button just to the left of the numbers.  It defaults to 9999.  The bigger the batch, the faster the emulator runs, but the slower the screen updates.  If 'fps' is a lot lower than 30 you probably had a very slow iPad, and you might want to use the 'speed' button to reduce the batch size and slow the PDP-8 processor down. 
+ 
+### Note on processor speed and old DEC programs.
+I have found that some of the old DEC programs, particularly the PALIII assembler, misbehave when using the slow paper tape reader in combination with processor speeds greater than about 150,000 ips.  I presume this is because the programs counted on the slow speed of the processor and the synchronization of the TTY and the tape reader on the ASR33.  The emulator does not enforce that synchronization.  
+
+The symptom I have seen is that the paper tape reader reads one or two characters and then stops.  I generally fix this either by slowing the processor using the processor `speed` button, or by switching the paper tape reader to `FAST` mode.
+
+FOCAL works much better with faster processor speeds when reading programs from the slow reader.  This is because FOCAL does not know it is reading from paper tape.  The reader must be placed in AUTO mode, and FOCAL simply thinks someone is typing the program at the TTY keyboard.  FOCAL is not fast enough to keep up with a very fast typist.  ;-)
 
 ### Keyboard
 I use a bluetooth keyboard with my emulator.  The mapping of keys to the old TTY works
