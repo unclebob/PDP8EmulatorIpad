@@ -143,20 +143,20 @@ Below the racks, between the "Next" and "Prev" buttons you'll see the "Load" and
 
 To load a core image into core, simply tap on the shelf to select it, and then press the "Load" button.  The core image will be immediately loaded into the PDP8 core memory.
 
-###Teleprinter
+### Teleprinter
 The teleprinter has an endless roll of yellow paper.  Only the most recent lines are shown, but you can scroll backwards to see previous contents by simply running your finger up and down over the paper -- similar to scrolling on a iPhone.
 
-###Listings.
+### Listings.
 There are two buttons below the control panel.  "Junk Listing" simply erases the TTY.  Careful, there's no way to get it back.
 
 The other button is "Save Listing".  This copies the contents of the TTY to `Dropbox:listing`.  Remember that Codea doesn't create this for you, so you'll have to go to `Apps/Codea` in your Dropbox account, and add an empty `listing` file if one is not already there.  Also remember that Codea does not automatically sync it's dropbox assets with the real dropbox, so you'll have to go to Codea's asset window and push the `sync` button.   I've included a convenient function named `dummy` in the `Main` module that has a `readText("Dropbox:xxxx")` line in it.  Just click on it, and Codea's asset picker will open.
 
-###IO Speed.
+### IO Speed.
 There are three buttons that control the speed of the IO devices.  There is a `FAST` toggle next to the Reader, another next to the Punch, and a `TTY FAST` toggle below the control panel.  If these are not set, then the speed of the corresponding devices is 10cps.  In fast mode they go much faster.  (See the "Configuring" section below).  
 
 Be careful.  As with the original PDP8, a fast reader can quickly outpace a slow TTY or Punch.  This may not be a problem with some of the PDP8 software, like the editor or the assembler.  However, FOCAL can't handle a fast reader, and you're own programs will have to deal with it.
 
-###Auto Reader
+### Auto Reader
 If you enable the AUTO button next to the reader, it couples the reader to the TTY keyboard, allowing you to enter a paper tape as though it were being typed from the keyboard.  Make sure the `FAST` toggle is not set!  In `AUTO` mode the reader does not wait for the CPU to read characters, so the reader should be slow in order to avoid overrunning the TTY, and the program.
 
 ### Loading Standard Programs.
