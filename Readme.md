@@ -5,7 +5,7 @@ This is my PDP8 Emulator for the iPad.  It's written in Lua using the Codea plat
 All the resources it uses are standard with Codea, or easily accessible, so you shouldn't have any difficulty running it as is.  
 
 ### The Model
-The emulator is a faithful representation of a PDP-8 with 4096 12 bit words of core memory, and an ASR-33 Teletype.  The Teletype is the only I/O device.  The Teletype has an infinite roll of paper, in infinite amount of ink, and an infinite supply of paper tape.  It has a built in paper tape reader, and a built in paper tape punch.  By default they all operate at approximately 10 characters per second, though there are cheats to make them go significantly faster.  
+The emulator is a faithful representation of a PDP-8 with 4096 12 bit words of core memory, and an ASR-33 Teletype.  The Teletype is the only I/O device.  The Teletype has an infinite roll of paper, an infinite amount of ink, and an infinite supply of paper tape.  It has a built in paper tape reader, and a built in paper tape punch.  By default they all operate at approximately 10 characters per second, though there are cheats to make them go significantly faster.  
 
 On my iPad, purchased in 2018, the emulator runs at just about the same speed as a real PDP-8.  That speed is adjustable should you want it to execute slower than that.  
 
@@ -37,14 +37,14 @@ Go to the main Codea window on your iPad and create a new project.  (Hit the big
 Now select Codea's `Air Code` function.  It will display a URL.  On your computer, browse to that URL.  You will see something like Codea's main window.  Click on the PDP-8 project that you just created.  The empty source code window will appear.  Paste the emulator source code, that is still in your clipboard, into this window.  Close the window.  
 
 Now return to your iPad and go to Codea's main window.  Tap the PDP-8 project, and you should see the emulator source code show up.  The first few lines should look like this:
+
 	--# Main
 	-- PDP8
 
 	-- To Do:
-	---- Test on other ipads.
-	---- Check different screen resolutions.
+	...
 
-	VERSION="202108231731"
+	VERSION="..some version..."
 	
 Execute the emulator by tapping the arrow button at the upper right.  (At least that's where it is on my version of Codea).  You should see the emulator appear on your screen.  If the keyboard window obscures part of the screen dismiss it.  We'll deal with that later.  The PDP-8 Control Panel will be at your lower right.  The Teletype (TTY) paper will be above that.  The paper tape reader and punch will be to the left of the TTY and Control Panel.  And on the far left you should see a rack of paper tapes.  We'll talk about them later.  
 
