@@ -4,8 +4,11 @@
 
 -- To Do:
 -- Add buttons to allow positioning tape on read head.
+-- Fix redraw after sleep
+-- Resize TTY scrolling area.
+-- Button to save paper tapes to dropbox.
 
-VERSION="202108272129"
+VERSION="20210828817"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -332,7 +335,7 @@ end
 function loadRackFromDropbox()
     local tapes = assetList("Dropbox")
     for i=1,#tapes do
-        if tapes[i] ~= "listing" then
+        if string.sub(tapes[i], 1, 8) ~= "listing_" then
             local shelf = findEmptyTopShelf()
             shelf.type = Shelf.TAPE
             shelf.name = tapes[i]
@@ -472,7 +475,7 @@ function quitProgram()
 end
 
 function saveListing() 
-    saveText("Dropbox:listing"..os.clock()..".txt", makeTextFromTty())
+    saveText("Dropbox:listing_"..os.clock()..".txt", makeTextFromTty())
 end
 
 function makeTextFromTty()

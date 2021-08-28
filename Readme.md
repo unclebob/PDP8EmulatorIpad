@@ -149,7 +149,9 @@ The teleprinter has an endless roll of yellow paper.  Only the most recent lines
 ### Listings.
 There are two buttons below the control panel.  "Junk Listing" simply erases the TTY.  Careful, there's no way to get it back.
 
-The other button is "Save Listing".  This copies the contents of the TTY to `Dropbox:listing[timestamp].txt`.  Remember that Codea does not automatically sync it's dropbox assets with the real dropbox, so you'll have to go to Codea's asset window and push the `sync` button.   I've included a convenient function named `dummy` in the `Main` module that has a `readText("Dropbox:xxxx")` line in it.  Just click on it, and Codea's asset picker will open.
+The other button is "Save Listing".  This copies the contents of the TTY to `Dropbox:listing_[timestamp].txt`.  Remember that Codea does not automatically sync it's dropbox assets with the real dropbox, so you'll have to go to Codea's asset window and push the `sync` button.   I've included a convenient function named `dummy` in the `Main` module that has a `readText("Dropbox:xxxx")` line in it.  Just click on it, and Codea's asset picker will open.
+
+Be aware that the dropbox directory where listings are kept is the same directory where the initial paper tapes are kept.  The Emulator will not load an initial paper tape that begins with `"listing_"`
 
 ### IO Speed.
 There are three buttons that control the speed of the IO devices.  There is a `FAST` toggle next to the Reader, another next to the Punch, and a `TTY FAST` toggle below the control panel.  If these are not set, then the speed of the corresponding devices is 10cps.  In fast mode they go much faster.  (See the "Configuring" section below).  
@@ -174,6 +176,8 @@ It would be a good idea to save a core image of the rim loader, the bin loader, 
  * `OdtHighBin` This is the Octal debugger in Bin format. 
  * `focalRim` This is FOCAL in RIM loader format.  It takes a while to load.	
  * `listing` This is the dummy file into which TTY listings will be dumped if you push the `Save Listing` button.
+ 
+ If you find a binary paper tape image on the net and want to include it, you can convert it to emulator format using the `topt.c` program.  Take the output and put it in your `Dropbox/Apps/Codea` directory, and then sync with Codea.  
  
 ### Videos
 
