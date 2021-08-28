@@ -5,7 +5,7 @@
 -- To Do:
 -- Add buttons to allow positioning tape on read head.
 
-VERSION="202108260701"
+VERSION="202108272129"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -156,6 +156,7 @@ function PDP8:draw()
         background(0,0,0,255)
         drawVersion()
     end
+    
     self.controlPanel:draw()
     self.tty:draw()   
     self.punch:draw()  
@@ -471,7 +472,7 @@ function quitProgram()
 end
 
 function saveListing() 
-    saveText("Dropbox:listing", makeTextFromTty())
+    saveText("Dropbox:listing"..os.clock()..".txt", makeTextFromTty())
 end
 
 function makeTextFromTty()
