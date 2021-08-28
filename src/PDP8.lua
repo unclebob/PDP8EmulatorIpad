@@ -5,10 +5,9 @@
 -- To Do:
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
--- Resize TTY scrolling area.
--- Button to save paper tapes to dropbox.
+-- Button to export paper tapes to dropbox.
 
-VERSION="20210828817"
+VERSION="202108281753"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -233,17 +232,17 @@ end
 
 function sendToTTY(key)
     local code = 0
-    if (key == "Â«") then -- RUBOUT
+    if (key == "Ã‚Â«") then -- RUBOUT
         code = Processor.octal(377)
-    elseif (key == "Â¬") then -- CTRL-L FORM-FEED
+    elseif (key == "Ã‚Â¬") then -- CTRL-L FORM-FEED
         code = Processor.octal(214)
-    elseif (key == "Â©") then -- CTRL-G BELL
+    elseif (key == "Ã‚Â©") then -- CTRL-G BELL
         code = Processor.octal(207)
-    elseif (key == "Ã§") then -- CTRL-C
+    elseif (key == "ÃƒÂ§") then -- CTRL-C
         code = Processor.octal(203)
     elseif (key:byte(1) == nil) then -- CTRL-M CR
         code = Processor.octal(215) 
-    elseif (key == "âˆ‚") then -- CTRL-D EOT
+    elseif (key == "Ã¢Ë†â€š") then -- CTRL-D EOT
         code = Processor.octal(204)
     else
         key = string.upper(key)
@@ -1452,7 +1451,7 @@ function Shelf:key(key)
     self.nameChanged = true
     if key == BACKSPACE then
         self.name = self.name:sub(1,-2)
-    elseif key == "Â¥" then -- OPT-Y
+    elseif key == "Ã‚Â¥" then -- OPT-Y
         self.name = ""
     else
         self.name = self.name..key
@@ -2070,16 +2069,17 @@ function Teletype:drawPaper()
     end
     
     self:setupFont()
+    self.nlines = math.floor(self.height / self.ch) - 2
     
     self.screeny = 0
     self.screenx = 0
     if (self.scrolling) then
-        local oldestLineToDraw = math.max(self.scrollBottom-30, 1)
+        local oldestLineToDraw = math.max(self.scrollBottom-self.nlines, 1)
         for lineToDraw = self.scrollBottom, oldestLineToDraw, -1 do
             self:drawLine(lineToDraw, false)
         end
     else
-        local oldestLineToDraw = math.max(self.line-30,1)
+        local oldestLineToDraw = math.max(self.line-self.nlines,1)
         if (justDrawOneChar) then
             oldestLineToDraw = self.line
         end
