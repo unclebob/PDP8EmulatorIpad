@@ -3,11 +3,15 @@
 -- PDP8
 
 -- To Do:
+-- Fix warnings and deprecations.
+-- Next and Prev Racks do not draw correctly.
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
 -- Button to export paper tapes to dropbox.
+-- Tapes loaded from dropbox are grey
+-- High speed paper tape speed limited to frame rate, use instructons per second instead?
 
-VERSION="202108281753"
+VERSION="202108290818"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -232,17 +236,17 @@ end
 
 function sendToTTY(key)
     local code = 0
-    if (key == "Ã‚Â«") then -- RUBOUT
+    if (key == "Ãƒâ€šÃ‚Â«") then -- RUBOUT
         code = Processor.octal(377)
-    elseif (key == "Ã‚Â¬") then -- CTRL-L FORM-FEED
+    elseif (key == "Ãƒâ€šÃ‚Â¬") then -- CTRL-L FORM-FEED
         code = Processor.octal(214)
-    elseif (key == "Ã‚Â©") then -- CTRL-G BELL
+    elseif (key == "Ãƒâ€šÃ‚Â©") then -- CTRL-G BELL
         code = Processor.octal(207)
-    elseif (key == "ÃƒÂ§") then -- CTRL-C
+    elseif (key == "ÃƒÆ’Ã‚Â§") then -- CTRL-C
         code = Processor.octal(203)
     elseif (key:byte(1) == nil) then -- CTRL-M CR
         code = Processor.octal(215) 
-    elseif (key == "Ã¢Ë†â€š") then -- CTRL-D EOT
+    elseif (key == "ÃƒÂ¢Ã‹â€ Ã¢â‚¬Å¡") then -- CTRL-D EOT
         code = Processor.octal(204)
     else
         key = string.upper(key)
@@ -694,9 +698,24 @@ end
 
 MomentaryButton = class(Button)
 
+function MomentaryButton:init(x,y,name, f)
+    self._base.init(self,x,y,name,f)
+    self.lightDelay = 0
+end
+
 function MomentaryButton:hit()
     self._base.hit(self)
-    self:off()
+    self.lightDelay = 6
+    --self.off(self)
+end
+
+function MomentaryButton:draw()
+    self._base.draw(self)
+    if self.lightDelay > 0 then
+        self.lightDelay = self.lightDelay-1
+    else
+        self.off(self)
+    end
 end
 
 function MomentaryButton:makeBit(x,y)
@@ -1451,7 +1470,7 @@ function Shelf:key(key)
     self.nameChanged = true
     if key == BACKSPACE then
         self.name = self.name:sub(1,-2)
-    elseif key == "Ã‚Â¥" then -- OPT-Y
+    elseif key == "Ãƒâ€šÃ‚Â¥" then -- OPT-Y
         self.name = ""
     else
         self.name = self.name..key
