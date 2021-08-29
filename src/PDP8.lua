@@ -3,7 +3,6 @@
 -- PDP8
 
 -- To Do:
--- Fix warnings and deprecations.
 -- Next and Prev Racks do not draw correctly.
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
@@ -11,7 +10,7 @@
 -- Tapes loaded from dropbox are grey
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 
-VERSION="202108290818"
+VERSION="202108290955"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -21,6 +20,7 @@ FAST_PUNCH_DELAY = 1/50 -- 50 characters per second
 TTYDELAY = 0.09 -- roughly 10cps
 PUNCHDELAY = 0.09
 READERDELAY = 0.1 -- Slower than tty to prevent FOCAL buffer overflow.
+SOUNDLIB=asset.downloaded.Game_Sounds_One
 
 function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
     readText("Dropbox:listing")
@@ -49,10 +49,10 @@ function setup()
 end
 
 function setupScreenAndKeyboard()
-    backingMode(RETAINED)
-    supportedOrientations(LANDSCAPE_ANY)
+    viewer.retainedBacking = true
     showKeyboard()
-    displayMode(FULLSCREEN_NO_BUTTONS)
+    viewer.mode = FULLSCREEN_NO_BUTTONS
+    viewer.preferredFPS=60 -- max for my iPads?
 end
 
 function draw()
@@ -75,7 +75,7 @@ function setupText()
 end
 
 function testAll() 
-    displayMode(STANDARD)
+    viewer.mode=STANDARD
     local t = Test()
     mainTest(t)
     ControlPanel.test(t)
@@ -336,12 +336,13 @@ function PDP8:loadRack()
 end
 
 function loadRackFromDropbox()
-    local tapes = assetList("Dropbox")
-    for i=1,#tapes do
-        if string.sub(tapes[i], 1, 8) ~= "listing_" then
+    local tapes = asset.documents.Dropbox.all
+    for i,path in pairs(tapes) do
+        if string.sub(path.name, 1, 8) ~= "listing_" then
             local shelf = findEmptyTopShelf()
             shelf.type = Shelf.TAPE
-            shelf.name = tapes[i]
+            local ext = string.find(path.name, "%.txt")
+            shelf.name = string.sub(path.name, 1, ext-1)
             shelf.io = DropboxReader()
         end
     end
@@ -448,10 +449,11 @@ function setPunchSpeed(speed)
     pdp8.punchFast = speed
 end
 
+
 function clearPunch()
     pdp8.punch.buffer = ""
     pdp8.punch.drawCount = 1
-    sound("Game Sounds One:Land")
+    sound(SOUNDLIB.Land)
 end
 
 function punchLeader()
@@ -470,7 +472,7 @@ end
 function quitProgram() 
     now = os.clock()
     if now-pdp8.quitTime < 1 then
-        sound("Game Sounds One:Assembly 5")
+        sound(SOUNDLIB.Assembly_5)
         while os.clock() - now < 0.5 do end
         close()
     end
@@ -607,7 +609,7 @@ function Bit:touched(t)
 end
 
 function Bit:sound()
-    sound("Game Sounds One:Wall Bounce 1")   
+    sound(SOUNDLIB.Wall_Bounce_1)
 end
 
 function Bit:isWithin(t)
@@ -638,7 +640,7 @@ function SwitchBit:drawBit()
 end
 
 function SwitchBit:sound()
-    sound("Game Sounds One:Assembly 3")
+    sound(SOUNDLIB.Assembly_3)
 end
 
 RoundBit = class(Bit)
@@ -684,7 +686,7 @@ function Button:touched(touch)
 end
 
 function Button:hit()
-    sound("Game Sounds One:Knock 2")
+    sound(SOUNDLIB.Knock_2)
     self.f(self.bit.value)
 end
 
@@ -1154,7 +1156,7 @@ function Punch:punch(byte)
     byte = byte&0xff
     self.buffer = self.buffer..string.char(byte)
     self.drawCount = 1
-    sound("Game Sounds One:Pistol")
+    sound(SOUNDLIB.Pistol)
 end
 
 function Punch:touched(t)
@@ -1166,7 +1168,7 @@ end
 
 function Punch:hit()
     if (self.buffer == nil or #self.buffer == 0) then
-        sound("Game Sounds One:Wrong")
+        sound(SOUNDLIB.Wrong)
     else
         local shelf = findEmptyTopShelf()
         shelf.name = "Tape:"..os.clock()
@@ -1488,7 +1490,7 @@ function Shelf:unselect()
         if self.name=="" or self.name==nil then
             if (self.io:write(self.prevName, nil) == false) then
                 self.name = self.prevName
-                sound("Game Sounds One:Wrong")
+                sound(SOUNDLIB.Wrong)
             else
                 self.type = Shelf.EMPTY
                 self.io = NullIO()
@@ -1496,7 +1498,7 @@ function Shelf:unselect()
         else
             if self.io:read(self.name) ~= nil then
                 self.name = self.prevName
-                sound("Game Sounds One:Wrong")
+                sound(SOUNDLIB.Wrong)
             else
                 if (self.io:write(self.name, self.io:read(self.prevName)) == false) then
                     self.name = self.prevName
@@ -1605,7 +1607,7 @@ function TapeReader:read()
     self.drawCount = self.drawCount+1
     c = self.buffer:byte(1)
     self.buffer = self.buffer:sub(2,-1)
-    sound("Game Sounds One:Throw")
+    sound(SOUNDLIB.Throw)
     return c
 end
 
@@ -2203,25 +2205,25 @@ function Teletype:type(c)
     
     if (c == self.LF) then
         self:startNextLine()
-        sound("Game Sounds One:Kick")
+        sound(SOUNDLIB.Kick)
     elseif (c == self.CR) then
         self.charPos = 0
-        sound("Game Sounds One:Assembly 6")
+        sound(SOUNDLIB.Assembly_6)
     elseif (c == self.BEL) then
-        sound("Game Sounds One:Bell 2")
+        sound(SOUNDLIB.Bell_2)
     elseif (c == self.FF) then
         self:startNextLine()
         self:startNextLine()
         self.charPos = 0
-        sound("Game Sounds One:Assembly 5")
+        sound(SOUNDLIB.Assembly_5)
     elseif(c == 0) or (c == self.RUBOUT) then
         -- Nothing to do.
     else
         self.charPos = self.charPos + 1
-        sound("Game Sounds One:Punch 2")
+        sound(SOUNDLIB.Punch_2)
         if self.charPos > 72 then
             self.charPos = 72
-            sound("Game Sounds One:Bell 2")
+            sound(SOUNDLIB.Bell_2)
         end
     end
 end
