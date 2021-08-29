@@ -10,7 +10,7 @@
 -- Tapes loaded from dropbox are grey
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 
-VERSION="202108290955"
+VERSION="202108291350"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -21,6 +21,13 @@ TTYDELAY = 0.09 -- roughly 10cps
 PUNCHDELAY = 0.09
 READERDELAY = 0.1 -- Slower than tty to prevent FOCAL buffer overflow.
 SOUNDLIB=asset.downloaded.Game_Sounds_One
+OPT_Y = "¥"
+RUBOUT = "«"
+CTL_L = "¬"
+CTL_G = "©"
+CTL_C = "§"
+CTL_D = "¡"
+
 
 function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
     readText("Dropbox:listing")
@@ -236,17 +243,17 @@ end
 
 function sendToTTY(key)
     local code = 0
-    if (key == "Ãƒâ€šÃ‚Â«") then -- RUBOUT
+    if (key == RUBOUT) then -- RUBOUT
         code = Processor.octal(377)
-    elseif (key == "Ãƒâ€šÃ‚Â¬") then -- CTRL-L FORM-FEED
+    elseif (key == CTL_L) then -- CTRL-L FORM-FEED
         code = Processor.octal(214)
-    elseif (key == "Ãƒâ€šÃ‚Â©") then -- CTRL-G BELL
+    elseif (key == CTL_G) then -- CTRL-G BELL
         code = Processor.octal(207)
-    elseif (key == "ÃƒÆ’Ã‚Â§") then -- CTRL-C
+    elseif (key == CTL_C) then -- CTRL-C
         code = Processor.octal(203)
     elseif (key:byte(1) == nil) then -- CTRL-M CR
         code = Processor.octal(215) 
-    elseif (key == "ÃƒÂ¢Ã‹â€ Ã¢â‚¬Å¡") then -- CTRL-D EOT
+    elseif (key == CTL_D) then -- CTRL-D EOT
         code = Processor.octal(204)
     else
         key = string.upper(key)
@@ -1472,7 +1479,7 @@ function Shelf:key(key)
     self.nameChanged = true
     if key == BACKSPACE then
         self.name = self.name:sub(1,-2)
-    elseif key == "Ãƒâ€šÃ‚Â¥" then -- OPT-Y
+    elseif key == OPT_Y then 
         self.name = ""
     else
         self.name = self.name..key
