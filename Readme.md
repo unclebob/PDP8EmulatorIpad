@@ -89,7 +89,7 @@ If the iPad goes to sleep while the emulator is running, then when it wakes up t
 ### Manuals
 The `manuals` directory of the GitHub distribution has several PDF files that you will find invaluable.  Above all is the _IntroToProgramming1969 (1).pdf_ manual; affectionately known as _Introduction to Programming_.  This manual will tell you everything (and I mean everything) you need to know to program the PDP-8, including how to use the text editor, the assembler, and FOCAL (A basic like interpreter).  This manual will be your bible.  It starts with binary math, and takes you all the way through the wonderful world of the PDP-8.
 
-The other manuals in that directory are supplementary.  They contain separate, and somewhat more detailed, descriptions of the text editor, the assembler, and FOCAL.  Have fun with all of them.
+The other manuals in that directory are supplementary.  They contain separate, and somewhat more detailed, descriptions of the text editor, the assembler, the FORTRAN compiler, and FOCAL.  Have fun with all of them.
 
 ### The Front Panel
 The lights on the front panel are also buttons.  You can tap them to change their state.  You can also slide your finger along the lights to change them as a group.  Try it!
@@ -175,7 +175,8 @@ It would be a good idea to save a core image of the rim loader, the bin loader, 
  * `lander-focal` This is the Lunar Lander FOCAL program that can be read in using AUTO mode on the reader.
  * `OdtHighBin` This is the Octal debugger in Bin format. 
  * `focalRim` This is FOCAL in RIM loader format.  It takes a while to load.	
- * `listing` This is the dummy file into which TTY listings will be dumped if you push the `Save Listing` button.
+ * `FortranCompiler` This is the 4K Fortran compiler circa 1969.
+ * `FortranOS` This is the Fortran OS that loads and executes Fortran programs.
  
  If you find a binary paper tape image on the net and want to include it, you can convert it to emulator format using the `topt.c` program.  Take the output and put it in your `Dropbox/Apps/Codea` directory, and then sync with Codea.  
  
