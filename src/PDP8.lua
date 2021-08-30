@@ -9,8 +9,9 @@
 -- Button to export paper tapes to dropbox.
 -- Tapes loaded from dropbox are grey
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
+-- use DBLCHAR and Numeric codes to detect special keys like OPT-Y, CTL_L, etc.
 
-VERSION="202108300804"
+VERSION="202108300840"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -21,13 +22,21 @@ TTYDELAY = 0.09 -- roughly 10cps
 PUNCHDELAY = 0.09
 READERDELAY = 0.1 -- Slower than tty to prevent FOCAL buffer overflow.
 SOUNDLIB=asset.downloaded.Game_Sounds_One
-DBLCHAR = 194
-OPT_Y = "¥" --165
-RUBOUT = "«" --171
-CTL_L = "¬" --172
-CTL_G = "©" --169
-CTL_C = "§" --167
-CTL_D = "¡" --161
+
+-- Special Keys.  
+-- Aircode does not properly copy these characters to the web interface.
+-- it adds a spurious prefix character.  If I forget to delete that character before
+-- committing to git then the special keys stop working.
+-- An interim solution is to trim any prefix characters away.  
+-- The string.sub call uses -2 because all these special chars are two bytes long.
+-- UTF-8.
+DBLCHAR = 194 -- UTF-8 Prefix.
+OPT_Y = string.sub("¥", -2) --165 OPT-Y
+RUBOUT = string.sub("«", -2) --171 OPT-\
+CTL_L = string.sub("¬", -2) --172 OPT-L
+CTL_G = string.sub("©", -2) --169 OPT-D
+CTL_C = string.sub("§", -2) --167 OPT-C
+CTL_D = string.sub("¡", -2) --161 OPT-1 
 
 function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
     readText(asset.documents.Dropbox.focalRim)
