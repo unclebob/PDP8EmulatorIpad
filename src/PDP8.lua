@@ -7,11 +7,10 @@
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
 -- Button to export paper tapes to dropbox.
--- Tapes loaded from dropbox are grey
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 -- use DBLCHAR and Numeric codes to detect special keys like OPT-Y, CTL_L, etc.
 
-VERSION="202108300840"
+VERSION="202108301337"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -357,6 +356,7 @@ function loadRackFromDropbox()
         if string.sub(path.name, 1, 8) ~= "listing_" then
             local shelf = findEmptyTopShelf()
             shelf.type = Shelf.TAPE
+            shelf.permanent=true
             local ext = string.find(path.name, "%.txt")
             shelf.name = string.sub(path.name, 1, ext-1)
             shelf.io = DropboxReader()
@@ -1046,6 +1046,7 @@ end
 --# PaperTape
 PaperTape = class()
 PaperTape.color = color(221, 207, 10, 255)
+PaperTape.permanentColor = color(200,200,200,255)
 
 function PaperTape:init(device)
     self.device = device
@@ -1401,6 +1402,7 @@ function Shelf:init(x,y)
     self.prevName = ""
     self.nameChanged = false
     self.type = Shelf.EMPTY
+    self.permanent = false
     self.io = NullIO()
 end
 
@@ -1422,7 +1424,7 @@ function Shelf:draw()
     if self.type == Shelf.CORE then
         self:drawCoreIcon()
     elseif self.type == Shelf.TAPE then
-        self:drawTapeIcon()
+        self:drawTapeIcon(self.permanent)
     end
 end
 
@@ -1439,7 +1441,11 @@ end
 
 function Shelf:drawTapeIcon()
     local bits = math.pi
-    fill(PaperTape.color)
+    if (self.permanent) then
+        fill(PaperTape.permanentColor)
+    else
+        fill(PaperTape.color)
+    end
     noStroke()
     rect(self.x+1, self.y+1, Shelf.iconWidth-1, Shelf.height-2)    
     
@@ -1485,15 +1491,17 @@ function Shelf:touched(touch)
 end
 
 function Shelf:key(key)
-    self.nameChanged = true
-    if key == BACKSPACE then
-        self.name = self.name:sub(1,-2)
-    elseif key == OPT_Y then 
-        self.name = ""
-    else
-        self.name = self.name..key
+    if (not self.permanent) then
+        self.nameChanged = true
+        if key == BACKSPACE then
+            self.name = self.name:sub(1,-2)
+        elseif key == OPT_Y then 
+            self.name = ""
+        else
+            self.name = self.name..key
+        end
+        Rack.drawCount = 1
     end
-    Rack.drawCount = 1
 end
 
 function Shelf:select()

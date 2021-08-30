@@ -129,9 +129,13 @@ This is slightly different from the procedure used on a real PDP8 front panel, a
 ### Shelves and Racks
 To the left are the shelves of the current rack.  You can switch to other racks by pushing the "Next" and "Prev" buttons at the bottom.  The shelves can hold paper tapes and core images.  
 
+Paper tapes and core images are kept on the shelves, and are differentiated by their icons.  The icon for core images is a core (a thick circle). Paper tape icons look like punched paper tapes.
+
+A paper tape icon is yellow if it was created by the emulator, and grey if it was imported from Dropbox. The names of grey tapes cannot be changed -- they are considered to be "system" tapes.
+
 The names of items on shelves can be changed by taping on the shelf and then editing the text of the name.  If you type Opt-Y the name will be erased, and you can type a new name.  
 
-To delete the contents of a shelf, simply delete the name of that shelf, and then tap another shelf, or anywhere outside of the rack.  The contents of the unnamed shelf will be deleted.  So be careful.
+To delete the contents of a shelf, simply delete the name of that shelf, and then tap another shelf, or anywhere outside of the rack.  The contents of the now unnamed shelf will be deleted.  So be careful.
 
 ###Paper Tapes
 Tap on a shelf that holds a paper tape to select it, and then tap the reader to load it.  The selected paper tape will show up in the reader, ready to be read by the PDP8.  The image of the paper tape is faithful, in that the holes in the paper tape correspond to the contents of the tape, and the bits that the PDP8 is reading.
@@ -168,6 +172,7 @@ When you start the emulator, the 4K of "core" is set to all zeroes.  To load any
 It would be a good idea to save a core image of the rim loader, the bin loader, the assembler, the editor, and FOCAL.  
 
 ### The Included Paper Tapes
+These tapes have grey icons in the shelf.  They are permanent and the names cannot be changed by tapping on the self.
 
  * `binloaderRim` This is the Bin Loader that can be read in by the RIM loader.  
  * `editBin` This is the text editor, in Bin loader format.	
