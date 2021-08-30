@@ -80,6 +80,7 @@ tolerably well, but there are a few strange exceptions.
  * Type Option-C for Ctrl-C
  * Type Option-L for Ctrl-L (Form Feed)
  * Type Option-G for Ctrl-G (Bell)
+ * Type Option-1 for Ctrl-D (EOT)
  
  Some bluetooth keyboard like to go to sleep.  When this happens the iPad keyboard window may pop up.  If you wake up the bluetooth keyboard, the iPad keyboard window should go away.  If you dismiss the iPad keyboard window, you may find that your bluetooth keyboard will no longer work until you reboot the emulator.  (Ugh.  Trying to simulate 1960s equipment with all this fancy tech is challenging ;-)
  
