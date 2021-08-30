@@ -10,7 +10,7 @@
 -- Tapes loaded from dropbox are grey
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 
-VERSION="202108291350"
+VERSION="202108300804"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -21,16 +21,16 @@ TTYDELAY = 0.09 -- roughly 10cps
 PUNCHDELAY = 0.09
 READERDELAY = 0.1 -- Slower than tty to prevent FOCAL buffer overflow.
 SOUNDLIB=asset.downloaded.Game_Sounds_One
-OPT_Y = "¥"
-RUBOUT = "«"
-CTL_L = "¬"
-CTL_G = "©"
-CTL_C = "§"
-CTL_D = "¡"
-
+DBLCHAR = 194
+OPT_Y = "¥" --165
+RUBOUT = "«" --171
+CTL_L = "¬" --172
+CTL_G = "©" --169
+CTL_C = "§" --167
+CTL_D = "¡" --161
 
 function dummy() -- This is here so you can tap on it to quickly open the dropbox picker and sync dropbox.
-    readText("Dropbox:listing")
+    readText(asset.documents.Dropbox.focalRim)
 end
 
 function drawVersion() 
@@ -487,7 +487,7 @@ function quitProgram()
 end
 
 function saveListing() 
-    saveText("Dropbox:listing_"..os.clock()..".txt", makeTextFromTty())
+    saveText(asset.documents.Dropbox .. "listing_"..os.clock()..".txt", makeTextFromTty())
 end
 
 function makeTextFromTty()
@@ -515,7 +515,7 @@ end
 DropboxReader = class()
 
 function DropboxReader:read(name) 
-    return readText("Dropbox:"..name)
+    return readText(asset.documents.Dropbox..name..".txt")
 end
 
 function DropboxReader:write(name, data)
