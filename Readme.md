@@ -137,11 +137,18 @@ The names of items on shelves can be changed by taping on the shelf and then edi
 
 To delete the contents of a shelf, simply delete the name of that shelf, and then tap another shelf, or anywhere outside of the rack.  The contents of the now unnamed shelf will be deleted.  So be careful.
 
-###Paper Tapes
+### Paper Tapes
 Tap on a shelf that holds a paper tape to select it, and then tap the reader to load it.  The selected paper tape will show up in the reader, ready to be read by the PDP8.  The image of the paper tape is faithful, in that the holes in the paper tape correspond to the contents of the tape, and the bits that the PDP8 is reading.
 
 To save a tape that has been punched, tap it.  It will be removed from the punch and placed in an empty
 shelf named `Tape_<time>`.  You can rename it if you like by tapping on it, and editing the name.  It will be saved as a Codea asset, and be available for subsequent runs of the emulator.  These tapes do not, however, get put into the dropbox assets.
+	
+### Exporting and Importing Paper Tapes.
+The `Export` button at the bottom of the rack will copy a selected tape to your Dropbox.  Remember to sync Lua after doing this.  You'll see the copy show up in grey in the rack.  
+
+The exported tape is in paper tape format and can be used by others users of the emulator.  If you'd like to make a text copy of the paper tape, use the `pt2txt` utility in the `src` folder.  
+
+If you have a text file that you'd like to turn into a paper tape, use the `topt` utility.
 
 ### Core Images
 Below the racks, between the "Next" and "Prev" buttons you'll see the "Load" and "Save" buttons.  If you push "Save" then the current contents of Core will be saved on an empty shelf.  You'll see it appear there with the name: `Core_<Time>`.  You can change the name by clicking on the shelf, and editing the text.  Again, these images are saved for future emulator runs.

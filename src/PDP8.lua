@@ -5,11 +5,10 @@
 -- To Do:
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
--- Button to export paper tapes to dropbox.
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 -- use DBLCHAR and Numeric codes to detect special keys like OPT-Y, CTL_L, etc.
 
-VERSION="202108310956"
+VERSION="202108311244"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -344,6 +343,21 @@ function load()
     end
 end
 
+function export()
+    local shelf = pdp8.selectedShelf
+    if (shelf ~= nil and shelf.type == Shelf.TAPE and shelf.permanent == false) then
+        local newShelf = findEmptyTopShelf()
+        newShelf.type = Shelf.TAPE
+        newShelf.permanent = true
+        newShelf.name = shelf.name
+        newShelf.io = DropboxReader()
+        local data = shelf.io:read(shelf.name)
+        saveText(asset.documents.Dropbox..shelf.name..".txt",data)
+    else
+        sound(SOUNDLIB.Wrong)
+    end
+end
+    
 function PDP8:loadRack() 
     loadRackFromDropbox()  
     self:loadRackFromProject()
@@ -1277,9 +1291,11 @@ function RackControls:init(x, y, width)
     self.y = y
     self.width = width
     self.prevButton = MomentaryButton(x+5, y, "Prev", prevRack)
-    self.loadButton = MomentaryButton(x+(width/3)-self.prevButton.width, y, "Load", load)
-    self.saveButton = MomentaryButton(x+(2*width/3), y, "Save", save)
-    self.nextButton = MomentaryButton(x+width-self.prevButton.width, y, "Next", nextRack)    
+    local buttonWidth = self.prevButton.width
+    self.nextButton = MomentaryButton(x+(width/3)-buttonWidth, y, "Next", nextRack)
+    self.saveButton = MomentaryButton(x+(2*width/3)-buttonWidth/2, y, "Save", save)
+    self.loadButton = MomentaryButton(x+self.saveButton.x+buttonWidth+2, y, "Load", load)    
+    self.exportButton = MomentaryButton(x+self.loadButton.x+buttonWidth+2, y, "Export", export)
 end
 
 function RackControls:draw()
@@ -1299,6 +1315,7 @@ function RackControls:draw()
     self.nextButton:draw()
     self.loadButton:draw()
     self.saveButton:draw()
+    self.exportButton:draw()
 end
 
 function RackControls:touched(touch)
@@ -1306,6 +1323,7 @@ function RackControls:touched(touch)
     self.nextButton:touched(touch)
     self.loadButton:touched(touch)
     self.saveButton:touched(touch)
+    self.exportButton:touched(touch)
 end
 
 --# Register
