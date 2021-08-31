@@ -1,9 +1,15 @@
 /*
-  Simple utility to translate a binary file, character by character
-  into lines composed of three octal digits. 
+Simple utility to translate a binary file, character by character
+into lines composed of three octal digits. 
 
-  So a file that contains "ABC" 
-  will be translated to: 101\n102\n103\n
+So a file that contains "ABC" 
+will be translated to: 101\n102\n103\n
+
+use -t for text files.  It will add \r before each \n
+
+usage: topt [-t] <infile >outfile
+
+Remember that paper tapes must have a .txt extension.
 */
 
 #include <stdio.h>
@@ -11,57 +17,46 @@
 #include <string.h>
 #include <strings.h>
 
-void putCharInOctal(int c, FILE* outFile) {
-		fputc('0'+((c>>6)&7), outFile);
-		fputc('0'+((c>>3)&7), outFile);
-  	fputc('0'+(c&7), outFile);
-    fputc('\n', outFile);
+void putCharInOctal(int c) {
+	putchar('0'+((c>>6)&7));
+	putchar('0'+((c>>3)&7));
+	putchar('0'+(c&7));
+	putchar('\n');
 }
 
-void leader(int n, FILE* outFile) {
+void leader(int n) {
 	for (int i=0; i<n; i++)	
-		putCharInOctal(0200, outFile);
+		putCharInOctal(0200);
 }
 
 int main(int ac, char** av) {
 	int textFlag = 0;
 	
-	if (ac != 2 && ac != 3) {
-		printf("usage topt [-t] file\n");
+	if (ac > 2) {
+		fprintf(stderr, "usage topt [-t] <infile >outfile\n");
 		exit(1);
 	}
 	
-  av++;
+	av++;
 
-  if (strcmp(*av, "-t") == 0) {
-		printf("text mode.\n");
+	if (strcmp(*av, "-t") == 0) {
+		fprintf(stderr, "text mode.\n");
 		textFlag = 1;
-		av++;
 	}
 	
-	FILE* inFile = fopen(*av, "r");
-  char outFileName[100];
-  bzero(outFileName, 100);
-  strcpy(outFileName, *av);
-  strcat(outFileName, ".txt");
-  printf("Creating %s\n", outFileName);
-  FILE* outFile = fopen(outFileName, "w");
-
-	leader(10, outFile);
+	leader(10);
 
 	int c;
-  while ((c = fgetc(inFile)) != EOF) {
-	if (textFlag) {
-		c+=0200;
-		if (c == 0212)
-			putCharInOctal(0215, outFile);
-	  }
-		putCharInOctal(c, outFile);
+	while ((c = getchar()) != EOF) {
+		if (textFlag) {
+			c|=0200;
+			if (c == 0212)
+				putCharInOctal(0215);
+		}
+		putCharInOctal(c);
 	}
 		
-	leader(10, outFile);
-	fclose(inFile);
-	fclose(outFile);
+	leader(10);
 }
 
 

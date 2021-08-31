@@ -148,7 +148,7 @@ The `Export` button at the bottom of the rack will copy a selected tape to your 
 
 The exported tape is in paper tape format and can be used by others users of the emulator.  If you'd like to make a text copy of the paper tape, use the `pt2txt` utility in the `src` folder.  
 
-If you have a text file that you'd like to turn into a paper tape, use the `topt` utility.
+If you have a text file that you'd like to turn into a paper tape, use the `topt` utility with the `-t` option.  `topt -t <file >file.txt`.  The `-t` option adds a `\r` before every `\n`.  
 
 ### Core Images
 Below the racks, between the "Next" and "Prev" buttons you'll see the "Load" and "Save" buttons.  If you push "Save" then the current contents of Core will be saved on an empty shelf.  You'll see it appear there with the name: `Core_<Time>`.  You can change the name by clicking on the shelf, and editing the text.  Again, these images are saved for future emulator runs.
@@ -191,7 +191,11 @@ These tapes have grey icons in the shelf.  They are permanent and the names cann
  * `FortranCompiler` This is the 4K Fortran compiler circa 1969.
  * `FortranOS` This is the Fortran OS that loads and executes Fortran programs.
  
- If you find a binary paper tape image on the net and want to include it, you can convert it to emulator format using the `topt.c` program.  Take the output and put it in your `Dropbox/Apps/Codea` directory, and then sync with Codea.  
+ If you find a binary paper tape image on the net and want to include it, you can convert it to emulator format using the `topt.c` program.  
+
+`topt <file >file.txt`
+ 
+ Take the output and put it in your `Dropbox/Apps/Codea` directory, and then sync with Codea.  
  
 ### Videos
 
