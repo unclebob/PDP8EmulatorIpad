@@ -3,14 +3,13 @@
 -- PDP8
 
 -- To Do:
--- Next and Prev Racks do not draw correctly.
 -- Add buttons to allow positioning tape on read head.
 -- Fix redraw after sleep
 -- Button to export paper tapes to dropbox.
 -- High speed paper tape speed limited to frame rate, use instructons per second instead?
 -- use DBLCHAR and Numeric codes to detect special keys like OPT-Y, CTL_L, etc.
 
-VERSION="202108301337"
+VERSION="202108310956"
 ION_DELAY=10 -- # of instructions after ION to wait before turning interrupts on.
 -- Set to 30 for Slow iPads to fix Focal freeze.
 AUTO_CR_DELAY = .5 -- Set to .5 for Slow iPads to fix Focal tape reader overrun.
@@ -371,7 +370,7 @@ function PDP8:loadRackFromProject()
         if (rackNo ~= nil) then
             self.currentRackNumber = rackNo
             if self.racks[rackNo] == nil then
-                self.racks[rackNo] = Rack(0, 100, self.midFrame-self.leftFrame)
+                self.racks[rackNo] = Rack(0, 100+BOTTOM, self.midFrame-self.leftFrame)
             end
             self:loadShelf(self.racks[rackNo], name)
         else
@@ -427,7 +426,7 @@ end
 
 function addNewRack()
     pdp8.currentRackNumber = #pdp8.racks+1
-    pdp8.racks[pdp8.currentRackNumber] = Rack(0, 100, self.midFrame-self.leftFrame)
+    pdp8.racks[pdp8.currentRackNumber] = Rack(0, BOTTOM+100, self.midFrame-self.leftFrame)
     pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
     Rack.drawCount = 1
 end
@@ -435,7 +434,7 @@ end
 function nextRack()
     pdp8.currentRackNumber = pdp8.currentRackNumber+1
     if pdp8.racks[pdp8.currentRackNumber] == nil then
-        pdp8.racks[pdp8.currentRackNumber] = Rack(0,100,pdp8.midFrame-pdp8.leftFrame)
+        pdp8.racks[pdp8.currentRackNumber] = Rack(0,BOTTOM+100,pdp8.midFrame-pdp8.leftFrame)
     end
     pdp8.currentRack = pdp8.racks[pdp8.currentRackNumber]
     Rack.drawCount = 1
