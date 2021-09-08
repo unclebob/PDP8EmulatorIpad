@@ -50,8 +50,10 @@ int main(int ac, char** av) {
 	while ((c = getchar()) != EOF) {
 		if (textFlag) {
 			c|=0200;
-			if (c == 0212)
-				putCharInOctal(0215);
+			if (c >= 0341 && c <= 0372) // lower case
+				c-=040; //toupper
+			if (c == 0212) //lf
+				putCharInOctal(0215);//cr
 		}
 		putCharInOctal(c);
 	}
