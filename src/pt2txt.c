@@ -26,7 +26,13 @@ int main(int ac, char** av) {
 		    char d1 = buffer[0] - 060;
 			char d2 = buffer[1] - 060;
 			char d3 = buffer[2] - 060;
-			putchar((d1*0100 + d2*010 + d3) & 0177);
+			char c = (d1*0100 + d2*010 + d3) & 0177;
+			if (c == 014) { // ^L -> ~
+				putchar('\n');
+				c = 0176; //~
+			}
+			if (c && c != 015) // skip nulls and CRs.  
+				putchar(c);
 		} else {
 			printf("bad line encountered: %s\n", buffer);
 		}

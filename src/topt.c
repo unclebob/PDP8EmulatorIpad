@@ -52,6 +52,8 @@ int main(int ac, char** av) {
 			c|=0200;
 			if (c >= 0341 && c <= 0372) // lower case
 				c-=040; //toupper
+			if (c == 0376) // ~ -> ^L
+				c = 0214; // ^L
 			if (c == 0212) //lf
 				putCharInOctal(0215);//cr
 		}

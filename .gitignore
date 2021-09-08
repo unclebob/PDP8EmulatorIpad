@@ -3,4 +3,6 @@ listings
 FORTRAN
 src/topt
 src/pt2txt
+src/*.pal
+
 
