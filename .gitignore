@@ -6,3 +6,5 @@ src/pt2txt
 src/*.pal
 
 
+.idea
+PDP8EmulatorIpad.iml
