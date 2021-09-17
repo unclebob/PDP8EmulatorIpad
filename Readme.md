@@ -49,7 +49,7 @@ Now return to your iPad and go to Codea's main window.  Tap the PDP-8 project, a
 	
 Execute the emulator by tapping the arrow button at the upper right.  (At least that's where it is on my version of Codea).  You should see the emulator appear on your screen.  If the keyboard window obscures part of the screen dismiss it.  We'll deal with that later.  The PDP-8 Control Panel will be at your lower right.  The Teletype (TTY) paper will be above that.  The paper tape reader and punch will be to the left of the TTY and Control Panel.  And on the far left you should see a rack of paper tapes.  We'll talk about them later.  
 
-Tap some of the lights on the control panel.  You should be able to turn them on and off; but you won't hear any sounds, or you may even get errors printed on a popup modal.  Let's fix that.  Exit the emulator by taping the `QuitX2` button (bottom center) twicem, or the left arrow in the error modal.
+Tap some of the lights on the control panel.  You should be able to turn them on and off; but you won't hear any sounds, or you may even get errors printed on a popup modal.  Let's fix that.  Exit the emulator by taping the `QuitX2` button (bottom center) twice, or the left arrow in the error modal.
 
 ### Step 3: Load the sound library.
 All the sounds we need are already assets known to Codea, but they need to be downloaded.  Once again, go to Codea's asset window, and tap the download button next to `Game Sounds One`.  The sound files will download quickly if you have a good network connection.
@@ -169,7 +169,7 @@ Be aware that the dropbox directory where listings are kept is the same director
 ### IO Speed.
 There are three buttons that control the speed of the IO devices.  There is a `FAST` toggle next to the Reader, another next to the Punch, and a `TTY FAST` toggle below the control panel.  If these are not set, then the speed of the corresponding devices is 10cps.  In fast mode they go much faster.  (See the "Configuring" section below).  
 
-Be careful.  As with the original PDP8, a fast reader can quickly outpace a slow TTY or Punch.  This may not be a problem with some of the PDP8 software, like the editor or the assembler.  However, FOCAL can't handle a fast reader, and you'r own programs will have to deal with it.
+Be careful.  As with the original PDP8, a fast reader can quickly outpace a slow TTY or Punch.  This may not be a problem with some of the PDP8 software, like the editor or the assembler.  However, FOCAL can't handle a fast reader, and your own programs will have to deal with it.
 
 ### Auto Reader
 If you enable the AUTO button next to the reader, it couples the reader to the TTY keyboard, allowing you to enter a paper tape as though it were being typed from the keyboard.  Make sure the `FAST` toggle is not set!  In `AUTO` mode the reader does not wait for the CPU to read characters, so the reader should be slow in order to avoid overrunning the TTY, and the program.
