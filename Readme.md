@@ -200,11 +200,11 @@ These tapes have grey icons in the shelf.  They are permanent and the names cann
  
 ### Videos
 
-In the videos directory of the GitHub distribution you will find some helpful videos showing how to operate the emulator.
+In the [PDP8 Emulator playlist](https://www.youtube.com/playlist?list=PLINHgpdx-_Cq0bImYF-IWVO8U2XERZuit) of one of my [YouTube channels](https://www.youtube.com/channel/UC1_xLDFOn7WdMzuaRyjAp2A) you will find some helpful videos showing how to operate the emulator.
 
- * [toggleInRimLoadBin.mp4](https://www.dropbox.com/s/617u6n63ucwbtj7/toggleInRimLoadBin.mp4?dl=0) shows the bootstrap procedure for the PDP-8.  Toggling in the RIM loader, and then using it to read in the Bin loader from paper tape.  The RIM loader is relatively easy to toggle in.  You can see it there right next to the front panel.  However, the RIM format is very inefficient so we don't want to use it to read in programs at 10cps.  The Bin loader is more complex, and would be very hard to toggle in; but the Bin format is twice as efficient as the RIM loader.  So, again, when we've got a 10cps device, the advantages ought to be clear.  
+ * [toggleInRimLoadBin](https://www.youtube.com/watch?v=nFNkjy1uZUY&list=PLINHgpdx-_Cq0bImYF-IWVO8U2XERZuit&index=2&t=21s) shows the bootstrap procedure for the PDP-8.  Toggling in the RIM loader, and then using it to read in the Bin loader from paper tape.  The RIM loader is relatively easy to toggle in.  You can see it there right next to the front panel.  However, the RIM format is very inefficient so we don't want to use it to read in programs at 10cps.  The Bin loader is more complex, and would be very hard to toggle in; but the Bin format is twice as efficient as the RIM loader.  So, again, when we've got a 10cps device, the advantages ought to be clear.  
  
- * [editAndCompile.mp4](https://www.dropbox.com/s/3shvmqsb52r48oq/editAndCompile.mp4?dl=0) shows the process of editing, compiling, and running a small PDP-8 program written in PAL-III assembler.  This one is fun!
+ * [editAndCompile](https://www.youtube.com/watch?v=rLzktWmwbHg&list=PLINHgpdx-_Cq0bImYF-IWVO8U2XERZuit&index=1) shows the process of editing, compiling, and running a small PDP-8 program written in PAL-III assembler.  This one is fun!
 
 ### Note on code structure:
 
