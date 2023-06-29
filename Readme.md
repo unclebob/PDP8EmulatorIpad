@@ -179,6 +179,9 @@ When you start the emulator, the 4K of "core" is set to all zeroes.  To load any
 
 It would be a good idea to save a core image of the rim loader, the bin loader, the assembler, the editor, and FOCAL.  
 
+### Starting Addresses
+Most programs start at 0200.  Some do not.  RTFM.  <grin>
+
 ### The Included Paper Tapes
 These tapes have grey icons in the shelf.  They are permanent and the names cannot be changed by tapping on the shelf.
 
